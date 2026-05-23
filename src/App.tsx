@@ -1,28 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  ArrowLeft,
-  Bell,
-  Bot,
-  BriefcaseBusiness,
-  CalendarClock,
-  CheckCircle2,
-  ChevronRight,
-  CircleDollarSign,
-  Gauge,
-  Handshake,
-  MessageSquare,
-  LayoutDashboard,
-  Lock,
-  Menu,
-  Moon,
-  Palette,
-  Search,
-  SlidersHorizontal,
-  Settings,
-  Sun,
-  UsersRound,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Menu, Moon, Palette, Search, SlidersHorizontal, Settings, Sun, UsersRound, X } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
 import type { CrmDataset, Policy, UserRole } from './data/crmTypes'
@@ -920,23 +897,23 @@ function App() {
                 <p className="eyebrow">Client folders</p>
                 <h1>Clients</h1>
                 <p className="account-context">
-                  QuickFile-style account access with modern search, filters, and insurance details.
+                  {filteredClients.length} client {filteredClients.length === 1 ? 'folder' : 'folders'} on file
                 </p>
               </div>
               <button className="primary-action" type="button">
-                Add New Client
+                + New Client
               </button>
             </div>
 
-            <section className="panel client-list-panel">
-              <div className="client-list-toolbar">
+            <div className="folder-workspace">
+              <div className="folder-toolbar">
                 <div className="search-box client-table-search">
                   <Search size={18} aria-hidden="true" />
                   <input
                     aria-label="Search clients"
                     value={clientSearch}
                     onChange={(event) => setClientSearch(event.target.value)}
-                    placeholder="Search clients, policies, leads, phone numbers, emails, policy numbers"
+                    placeholder="Search by name, phone, email, policy number, carrier..."
                   />
                 </div>
                 <div className="filter-tabs" role="group" aria-label="Client filters">
@@ -953,122 +930,162 @@ function App() {
                 </div>
               </div>
 
-              <div className="table-wrap client-table-wrap">
-                <table className="client-table">
-                  <thead>
-                    <tr>
-                      <th>Client Name</th>
-                      <th>Type</th>
-                      <th>Main Contact</th>
-                      <th>Phone</th>
-                      <th>Email</th>
-                      <th>Policy Count</th>
-                      <th>Total Premium</th>
-                      <th>Next Renewal Date</th>
-                      <th>CSR / Producer</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClients.map((client) => {
-                      const policies = dataset.policies.filter((policy) => policy.clientId === client.id)
-                      const nextRenewal = policies
-                        .map((policy) => policy.expirationDate)
-                        .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0]
-                      const totalPremium = policies.reduce((total, policy) => total + policy.premium, 0)
-                      return (
-                        <tr
-                          className="clickable-row"
-                          key={client.id}
-                          onClick={() => {
-                            setSelectedClientId(client.id)
-                            setClientTab('Overview')
-                            setPolicyFilter('All')
-                            setActiveView('profile')
-                          }}
-                        >
-                          <td>
-                            <strong>{client.name}</strong>
-                            {client.dbaName && <span>{client.dbaName}</span>}
-                          </td>
-                          <td>{getClientTypeLabel(client.lineOfBusiness)}</td>
-                          <td>{client.primaryContact}</td>
-                          <td>{client.phone}</td>
-                          <td>{client.email}</td>
-                          <td>{policies.length}</td>
-                          <td>{currency.format(totalPremium)}</td>
-                          <td>{nextRenewal ? formatDate(nextRenewal) : 'None'}</td>
-                          <td>
-                            {getUserName(dataset, client.assignedCsrId ?? '')} /{' '}
-                            {getUserName(dataset, client.assignedProducerId ?? '')}
-                          </td>
-                          <td>
-                            <span className="status-pill">{client.accountStatus ?? client.status}</span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="folder-grid">
+                {filteredClients.map((client) => {
+                  const policies = dataset.policies.filter((policy) => policy.clientId === client.id)
+                  const activePolicies = policies.filter((p) => isActivePolicy(p.status))
+                  const nextRenewal = policies
+                    .map((policy) => policy.expirationDate)
+                    .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0]
+                  const totalPremium = policies.reduce((total, policy) => total + policy.premium, 0)
+                  const hasRenewalDue = dataset.renewals.some((r) => r.clientId === client.id)
+                  const status = client.accountStatus ?? client.status
+                  return (
+                    <button
+                      className={`folder-card folder-card--${status?.toLowerCase().replace(/\s+/g, '-') ?? 'active'}`}
+                      type="button"
+                      key={client.id}
+                      onClick={() => {
+                        setSelectedClientId(client.id)
+                        setClientTab('Overview')
+                        setPolicyFilter('All')
+                        setActiveView('profile')
+                      }}
+                    >
+                      <div className="folder-card-tab">
+                        <span className="folder-card-type">{getClientTypeLabel(client.lineOfBusiness)}</span>
+                        <span className={`folder-status-dot folder-status-dot--${status?.toLowerCase().replace(/\s+/g, '-') ?? 'active'}`} aria-hidden="true" />
+                      </div>
+                      <div className="folder-card-body">
+                        <div className="folder-card-identity">
+                          <strong className="folder-card-name">{client.name}</strong>
+                          {client.dbaName && <span className="folder-card-dba">{client.dbaName}</span>}
+                          <span className="folder-card-contact">{client.primaryContact}</span>
+                        </div>
+                        <div className="folder-card-stats">
+                          <div className="folder-stat">
+                            <span>Policies</span>
+                            <strong>{activePolicies.length} active</strong>
+                          </div>
+                          <div className="folder-stat">
+                            <span>Premium</span>
+                            <strong>{compactCurrency.format(totalPremium)}</strong>
+                          </div>
+                          <div className="folder-stat">
+                            <span>Next renewal</span>
+                            <strong className={hasRenewalDue ? 'folder-stat-alert' : ''}>{nextRenewal ? formatDate(nextRenewal) : 'None'}</strong>
+                          </div>
+                        </div>
+                        <div className="folder-card-footer">
+                          <span className="folder-card-phone">{client.phone ?? client.email ?? 'No contact on file'}</span>
+                          <span className="folder-open-cta">
+                            Open folder
+                            <ChevronRight size={14} aria-hidden="true" />
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+                {filteredClients.length === 0 && (
+                  <div className="empty-state folder-empty-state">
+                    No client folders match your search or filter.
+                  </div>
+                )}
               </div>
-            </section>
+            </div>
           </section>
         ) : activeView === 'profile' && selectedClient ? (
           <section className="client-page">
-            <div className="page-heading client-file-heading">
-              <div>
+
+            <div className="open-folder-shell">
+              <div className="open-folder-header">
                 <button
                   className="text-button back-button"
                   type="button"
                   onClick={() => setActiveView('clients')}
                 >
                   <ArrowLeft size={16} aria-hidden="true" />
-                  Clients
+                  All folders
                 </button>
-                <p className="eyebrow">Client folder</p>
-                <h1>{selectedClient.name}</h1>
-                <p className="account-context">
-                  {selectedClient.phone} - {selectedClient.email} - {selectedClient.mailingAddress}
-                </p>
+                <div className="open-folder-identity">
+                  <div className="open-folder-title-row">
+                    <div>
+                      <p className="eyebrow">Open client folder</p>
+                      <h1>{selectedClient.name}</h1>
+                      {selectedClient.dbaName && <p className="folder-dba-label">{selectedClient.dbaName}</p>}
+                    </div>
+                    <div className="open-folder-badges">
+                      <span className="status-pill">{getClientTypeLabel(selectedClient.lineOfBusiness)}</span>
+                      <span className={`folder-health-badge folder-health-badge--${(selectedClient.health ?? 'strong').toLowerCase().replace(/\s+/g, '-')}`}>{selectedClient.health ?? 'Strong'}</span>
+                      <span className="status-pill">{selectedClient.accountStatus ?? selectedClient.status}</span>
+                    </div>
+                  </div>
+                  <div className="open-folder-contact-row">
+                    {selectedClient.phone && <span>{selectedClient.phone}</span>}
+                    {selectedClient.email && <span>{selectedClient.email}</span>}
+                    {selectedClient.mailingAddress && <span>{selectedClient.mailingAddress}</span>}
+                    {selectedClient.clientSince && <span>Client since {formatFullDate(selectedClient.clientSince)}</span>}
+                  </div>
+                </div>
               </div>
-              <div className="client-header-badges">
-                <span className="status-pill">{getClientTypeLabel(selectedClient.lineOfBusiness)}</span>
-                <span className="status-pill">{selectedClient.accountStatus ?? selectedClient.status}</span>
+
+              <div className="open-folder-strip">
+                <div className="folder-strip-stat">
+                  <span>Producer</span>
+                  <strong>{getUserName(dataset, selectedClient.assignedProducerId ?? '')}</strong>
+                </div>
+                <div className="folder-strip-stat">
+                  <span>CSR</span>
+                  <strong>{getUserName(dataset, selectedClient.assignedCsrId ?? '')}</strong>
+                </div>
+                <div className="folder-strip-stat folder-strip-stat--accent">
+                  <span>Active Policies</span>
+                  <strong>{activeClientPolicies.length}</strong>
+                </div>
+                <div className="folder-strip-stat folder-strip-stat--accent">
+                  <span>Total Premium</span>
+                  <strong>{currency.format(selectedClientPremium)}</strong>
+                </div>
+                <div className="folder-strip-stat">
+                  <span>Commission</span>
+                  <strong>{currency.format(selectedClientCommission)}</strong>
+                </div>
+                <div className="folder-strip-stat folder-strip-stat--renewal">
+                  <span>Next Renewal</span>
+                  <strong>{selectedClientNextRenewal ? formatDate(selectedClientNextRenewal) : 'None'}</strong>
+                </div>
+                <div className="folder-strip-stat">
+                  <span>Last Contacted</span>
+                  <strong>{selectedClientLastContacted}</strong>
+                </div>
+              </div>
+
+              <div className="open-folder-actions">
+                <div className="action-group primary-action-group">
+                  <button className="primary-action" type="button">Add New Policy</button>
+                </div>
+                <div className="action-group secondary-action-group">
+                  <button className="secondary-action" type="button">Add Task</button>
+                  <button className="secondary-action" type="button">Create Follow-Up</button>
+                  <button className="secondary-action" type="button">Add Note</button>
+                </div>
+                <div className="action-group utility-action-group">
+                  <button className="utility-action" type="button">Send Email</button>
+                  <button className="utility-action" type="button">Send Text</button>
+                  <button className="utility-action" type="button">Add Payment Reminder</button>
+                </div>
               </div>
             </div>
 
-            <section className="quick-actions client-quick-actions" aria-label="Client quick actions">
-              <div className="action-group primary-action-group">
-                <button className="primary-action" type="button">Add New Policy</button>
-              </div>
-              <div className="action-group secondary-action-group">
-                <button className="secondary-action" type="button">Add Task</button>
-                <button className="secondary-action" type="button">Create Follow-Up</button>
-                <button className="secondary-action" type="button">Add Note</button>
-              </div>
-              <div className="action-group utility-action-group">
-                <button className="utility-action" type="button">Send Email</button>
-                <button className="utility-action" type="button">Send Text</button>
-                <button className="utility-action" type="button">Add Payment Reminder</button>
-              </div>
-            </section>
-
-            <section className="client-summary-strip">
-              <div><span>Assigned Producer</span><strong>{getUserName(dataset, selectedClient.assignedProducerId ?? '')}</strong></div>
-              <div><span>CSR / Service Rep</span><strong>{getUserName(dataset, selectedClient.assignedCsrId ?? '')}</strong></div>
-              <div><span>Active Policies</span><strong>{activeClientPolicies.length}</strong></div>
-              <div><span>Total Premium</span><strong>{currency.format(selectedClientPremium)}</strong></div>
-              <div><span>Total Commission</span><strong>{currency.format(selectedClientCommission)}</strong></div>
-              <div><span>Next Renewal</span><strong>{selectedClientNextRenewal ? formatDate(selectedClientNextRenewal) : 'None'}</strong></div>
-              <div><span>Last Contacted</span><strong>{selectedClientLastContacted}</strong></div>
-            </section>
-
-            <div className="client-tabs" role="tablist" aria-label="Client profile tabs">
+            <div className="folder-tab-row" role="tablist" aria-label="Client folder sections">
               {clientTabs.map((tab) => (
                 <button
-                  className={clientTab === tab ? 'client-tab active' : 'client-tab'}
+                  className={clientTab === tab ? 'folder-tab active' : 'folder-tab'}
                   type="button"
                   key={tab}
+                  role="tab"
+                  aria-selected={clientTab === tab}
                   onClick={() => setClientTab(tab)}
                 >
                   {tab}
@@ -1076,7 +1093,7 @@ function App() {
               ))}
             </div>
 
-            <section className="panel client-tab-panel">
+            <section className="panel folder-tab-panel">
               {clientTab === 'Overview' && (
                 <div className="profile-grid">
                   <div className="detail-list">
@@ -1495,39 +1512,48 @@ function App() {
           <article className="panel widget-panel">
             <div className="panel-header">
               <div>
-                <h2>New Prospects & Key Accounts</h2>
-                <p>Keep today&apos;s pipeline and high-value client files close.</p>
+                <h2>Key Accounts</h2>
+                <p>High-value client folders and pipeline at a glance.</p>
               </div>
               <CircleDollarSign size={22} aria-hidden="true" />
             </div>
-            <div className="account-list">
-              {accounts.map((account) => (
-                <div className="account-row" key={account.name}>
-                  <div>
-                    <strong>{account.name}</strong>
-                    <span>
-                      {account.lineOfBusiness} - {account.primaryContact}
-                    </span>
-                  </div>
-                  <div>
-                    {canSeeOwnerAnalytics && <b>{currency.format(account.annualRevenue)}</b>}
-                    <small>
-                      {account.policyCount} policies - {account.health}
-                    </small>
-                    <button
-                      className="text-button account-file-link"
-                      type="button"
-                      onClick={() => {
-                        setSelectedClientId(account.id)
-                        setActiveView('profile')
-                      }}
-                    >
-                      Open file
-                      <ChevronRight size={15} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="key-account-folder-list">
+              {accounts.map((account) => {
+                const accountPolicies = dataset.policies.filter((p) => p.clientId === account.id)
+                const activePols = accountPolicies.filter((p) => isActivePolicy(p.status))
+                const nextRen = accountPolicies
+                  .map((p) => p.expirationDate)
+                  .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0]
+                return (
+                  <button
+                    className="key-account-folder"
+                    type="button"
+                    key={account.id}
+                    onClick={() => {
+                      setSelectedClientId(account.id)
+                      setActiveView('profile')
+                    }}
+                  >
+                    <div className="key-account-folder-accent" aria-hidden="true" />
+                    <div className="key-account-folder-main">
+                      <div className="key-account-folder-top">
+                        <strong>{account.name}</strong>
+                        <span className={`key-account-health key-account-health--${account.health.toLowerCase().replace(/\s+/g, '-')}`}>{account.health}</span>
+                      </div>
+                      <div className="key-account-folder-meta">
+                        <span>{account.lineOfBusiness} · {activePols.length} active</span>
+                        {nextRen && <span>Renews {formatDate(nextRen)}</span>}
+                      </div>
+                      {canSeeOwnerAnalytics && (
+                        <div className="key-account-folder-premium">
+                          {compactCurrency.format(account.annualRevenue)}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight size={16} className="key-account-folder-arrow" aria-hidden="true" />
+                  </button>
+                )
+              })}
             </div>
           </article>
           )}

@@ -2026,6 +2026,638 @@ tbody tr:hover {
   background: var(--accent-soft);
 }
 
+/* ─── Folder Workspace (Client List) ─────────────────────────── */
+
+.folder-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.folder-toolbar {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.91)),
+    var(--surface-warm);
+  box-shadow: var(--shadow);
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0 14px;
+  row-gap: 20px;
+}
+
+.folder-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 0;
+  border-radius: 0 8px 8px 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  filter: drop-shadow(0 6px 16px rgba(5, 11, 22, 0.07));
+  transition: filter 180ms ease, transform 180ms ease;
+}
+
+.folder-card:hover {
+  filter: drop-shadow(0 14px 28px rgba(5, 11, 22, 0.14));
+  transform: translateY(-3px);
+}
+
+.folder-card-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: flex-start;
+  gap: 8px;
+  height: 28px;
+  min-width: 120px;
+  max-width: 70%;
+  padding: 0 12px;
+  border-radius: 6px 6px 0 0;
+  background: color-mix(in srgb, var(--accent-soft) 80%, #ffffff);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  margin-bottom: -1px;
+}
+
+.folder-card-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent-soft) 80%, #ffffff);
+}
+
+.folder-card-type {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.folder-status-dot--active,
+.folder-status-dot--client {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.24);
+}
+
+.folder-status-dot--prospect {
+  background: var(--gold);
+  box-shadow: 0 0 0 2px rgba(197, 138, 32, 0.24);
+}
+
+.folder-status-dot--inactive {
+  background: #94a3b8;
+}
+
+.folder-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 14px;
+  border: 1px solid var(--border);
+  border-radius: 0 8px 8px 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.92)),
+    var(--surface-warm);
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.folder-card:hover .folder-card-body {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 1), var(--accent-soft)),
+    var(--surface-warm);
+}
+
+.folder-card-identity {
+  display: grid;
+  gap: 3px;
+}
+
+.folder-card-name {
+  display: block;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.folder-card-dba {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.folder-card-contact {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.folder-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.folder-stat {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.folder-stat span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.folder-stat strong {
+  display: block;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.folder-stat-alert {
+  color: #c85b1a !important;
+}
+
+.folder-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.folder-card-phone {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.folder-open-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.folder-card:hover .folder-open-cta {
+  opacity: 1;
+}
+
+.folder-empty-state {
+  grid-column: 1 / -1;
+}
+
+/* ─── Open Folder Shell (Client Profile) ─────────────────────── */
+
+.open-folder-shell {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.93)),
+    var(--surface-warm);
+  box-shadow: var(--shadow);
+}
+
+.open-folder-header {
+  padding: 20px 22px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.open-folder-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.folder-dba-label {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.open-folder-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.folder-health-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.folder-health-badge--strong {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.folder-health-badge--needs-review {
+  color: #78350f;
+  background: var(--gold-soft);
+  border-color: rgba(197, 138, 32, 0.24);
+}
+
+.folder-health-badge--at-risk {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.open-folder-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 8px;
+}
+
+.open-folder-contact-row span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.open-folder-contact-row span + span::before {
+  content: '·';
+  margin: 0 8px;
+  color: var(--border);
+}
+
+.open-folder-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+
+.folder-strip-stat {
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+}
+
+.folder-strip-stat:last-child {
+  border-right: 0;
+}
+
+.folder-strip-stat span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.folder-strip-stat strong {
+  display: block;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.folder-strip-stat--accent {
+  background: color-mix(in srgb, var(--accent-soft) 42%, transparent);
+}
+
+.folder-strip-stat--accent strong {
+  color: var(--accent-strong);
+}
+
+.folder-strip-stat--renewal strong {
+  color: #c85b1a;
+}
+
+.open-folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 22px;
+}
+
+/* ─── Folder Tab Row (Client Profile Tabs) ────────────────────── */
+
+.folder-tab-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 0 2px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.folder-tab {
+  position: relative;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-muted) 82%, #ffffff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.folder-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 160ms ease;
+}
+
+.folder-tab:hover {
+  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.88);
+  transform: none;
+}
+
+.folder-tab.active {
+  color: var(--accent-strong);
+  background: rgba(255, 255, 255, 0.99);
+  border-color: var(--border);
+  z-index: 1;
+}
+
+.folder-tab.active::after {
+  background: rgba(255, 255, 255, 0.99);
+}
+
+.folder-tab-panel {
+  border-top-left-radius: 0;
+  border-top: 1px solid var(--border);
+  margin-top: -1px;
+  position: relative;
+  z-index: 0;
+}
+
+/* ─── Key Accounts Folder List (Dashboard Widget) ─────────────── */
+
+.key-account-folder-list {
+  display: grid;
+  gap: 10px;
+}
+
+.key-account-folder {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.88));
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.key-account-folder:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: 0 10px 24px rgba(5, 11, 22, 0.1);
+  transform: translateY(-2px);
+}
+
+.key-account-folder-accent {
+  width: 4px;
+  align-self: stretch;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  flex-shrink: 0;
+}
+
+.key-account-folder-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+}
+
+.key-account-folder-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.key-account-folder-top strong {
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.key-account-health {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.key-account-health--strong {
+  color: #14532d;
+  background: #dcfce7;
+}
+
+.key-account-health--needs-review {
+  color: #78350f;
+  background: var(--gold-soft);
+}
+
+.key-account-health--at-risk {
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.key-account-folder-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.key-account-folder-meta span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.key-account-folder-premium {
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.key-account-folder-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-right: 12px;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.key-account-folder:hover .key-account-folder-arrow {
+  color: var(--accent-strong);
+  transform: translateX(2px);
+}
+
+/* ─── Dark mode overrides for folder components ────────────────── */
+
+.app-shell[data-mode='dark'] .folder-card-body,
+.app-shell[data-mode='dark'] .folder-toolbar,
+.app-shell[data-mode='dark'] .open-folder-shell,
+.app-shell[data-mode='dark'] .key-account-folder {
+  background: rgba(18, 33, 38, 0.9);
+}
+
+.app-shell[data-mode='dark'] .folder-card:hover .folder-card-body {
+  background: color-mix(in srgb, var(--accent-soft) 38%, rgba(18, 33, 38, 0.95));
+}
+
+.app-shell[data-mode='dark'] .folder-card-tab {
+  background: color-mix(in srgb, var(--accent-soft) 28%, rgba(18, 33, 38, 0.9));
+  border-color: var(--border);
+}
+
+.app-shell[data-mode='dark'] .folder-card-tab::after {
+  background: color-mix(in srgb, var(--accent-soft) 28%, rgba(18, 33, 38, 0.9));
+}
+
+.app-shell[data-mode='dark'] .folder-stat {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.app-shell[data-mode='dark'] .folder-tab {
+  background: rgba(18, 33, 38, 0.82);
+  border-color: var(--border);
+}
+
+.app-shell[data-mode='dark'] .folder-tab.active,
+.app-shell[data-mode='dark'] .folder-tab.active::after {
+  background: rgba(18, 33, 38, 0.96);
+}
+
+.app-shell[data-mode='dark'] .folder-tab-panel {
+  background: rgba(18, 33, 38, 0.9);
+}
+
+.app-shell[data-mode='dark'] .folder-strip-stat--accent {
+  background: color-mix(in srgb, var(--accent-soft) 20%, transparent);
+}
+
+.app-shell[data-mode='dark'] .folder-health-badge--strong {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.app-shell[data-mode='dark'] .folder-health-badge--needs-review {
+  color: #fde68a;
+  background: var(--gold-soft);
+}
+
+.app-shell[data-mode='dark'] .folder-health-badge--at-risk {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.app-shell[data-mode='dark'] .key-account-health--strong {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.app-shell[data-mode='dark'] .key-account-health--needs-review {
+  color: #fde68a;
+  background: var(--gold-soft);
+}
+
+.app-shell[data-mode='dark'] .key-account-health--at-risk {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2059,6 +2691,14 @@ tbody tr:hover {
 
   .appearance-menu {
     order: 3;
+  }
+
+  .folder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .open-folder-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .metric-grid,
@@ -2116,6 +2756,33 @@ tbody tr:hover {
 
   h1 {
     font-size: 28px;
+  }
+
+  .folder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .open-folder-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .open-folder-title-row {
+    flex-direction: column;
+  }
+
+  .open-folder-badges {
+    justify-content: flex-start;
+  }
+
+  .open-folder-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .folder-tab-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0;
   }
 
   .metric-grid,
