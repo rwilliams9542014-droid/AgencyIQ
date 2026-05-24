@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Mail, Menu, Moon, Palette, RefreshCcw, Search, Send, SlidersHorizontal, Settings, Sparkles, Sun, UsersRound, X, Zap } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
+import { IvansPanel } from './components/IvansPanel'
 import type { CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
@@ -1570,6 +1571,7 @@ function App() {
           <RenewalCenter
             renewalPolicies={filteredRenewalPolicies}
             allRenewalPolicies={renewalPolicies}
+            accountId={dataset.agency.id}
             dataset={dataset}
             todayIso={todayIso}
             renewalViewMode={renewalViewMode}
@@ -2859,7 +2861,7 @@ type RenewalPolicyItem = {
 }
 
 function RenewalCenter({
-  renewalPolicies, allRenewalPolicies, dataset: _dataset, todayIso: _todayIso,
+  renewalPolicies, allRenewalPolicies, accountId, dataset: _dataset, todayIso: _todayIso,
   renewalViewMode, setRenewalViewMode,
   renewalMonth, setRenewalMonth,
   renewalDateFrom, setRenewalDateFrom,
@@ -2877,6 +2879,7 @@ function RenewalCenter({
 }: {
   renewalPolicies: RenewalPolicyItem[]
   allRenewalPolicies: RenewalPolicyItem[]
+  accountId: string
   dataset: CrmDataset
   todayIso: string
   renewalViewMode: 'month' | 'range'
@@ -2915,6 +2918,7 @@ function RenewalCenter({
   getUserName: (id: string) => string
 }) {
   const [showTemplates, setShowTemplates] = useState(false)
+  const [showIvans, setShowIvans] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const allIds = renewalPolicies.map((r) => r.policy.id)
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id))
@@ -2935,6 +2939,31 @@ function RenewalCenter({
   const autopayCount = allRenewalPolicies.filter((r) => r.isAutopay).length
 
   const monthLabel = new Date(`${renewalMonth}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  if (showIvans) {
+    return (
+      <section className="renewal-center">
+        <div className="renewal-topbar">
+          <div>
+            <p className="eyebrow">Renewal Command Center</p>
+            <h1>IVANS Download Center</h1>
+            <p className="account-context">Carrier data sync · ACORD file parsing · automated renewal detection</p>
+          </div>
+          <button className="secondary-action" type="button" onClick={() => setShowIvans(false)}>
+            <ArrowLeft size={16} /> Back to Renewals
+          </button>
+        </div>
+        <IvansPanel
+          accountId={accountId}
+          currency={currency}
+          formatDate={formatDate}
+          onMergePolicy={(synced) => {
+            showToast(`Policy ${synced.policy_number} (${synced.insured_name}) accepted from IVANS`)
+          }}
+        />
+      </section>
+    )
+  }
 
   if (showTemplates) {
     return (
@@ -3002,8 +3031,11 @@ function RenewalCenter({
           </p>
         </div>
         <div className="renewal-header-actions">
+          <button className="utility-action ivans-launch-btn" type="button" onClick={() => setShowIvans(true)}>
+            <Zap size={15} /> IVANS Sync
+          </button>
           <button className="utility-action" type="button" onClick={() => exportRenewalsCsv(someSelected ? renewalPolicies.filter((r) => selectedIds.has(r.policy.id)) : renewalPolicies)}>
-            <CircleDollarSign size={15} /> Export {someSelected ? `${selectedIds.size} selected` : 'all'} to CSV
+            <CircleDollarSign size={15} /> Export {someSelected ? `${selectedIds.size} selected` : 'all'}
           </button>
           <button className="utility-action" type="button" onClick={() => setShowTemplates(true)}>
             <Mail size={15} /> Email Templates

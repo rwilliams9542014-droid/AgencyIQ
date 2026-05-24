@@ -4569,6 +4569,558 @@ tbody tr:hover {
   margin: 0 2px;
 }
 
+/* ─── IVANS Launch Button ────────────────────────────────────── */
+.ivans-launch-btn {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface-warm)), color-mix(in srgb, var(--accent) 6%, var(--surface-warm)));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--accent-strong);
+  font-weight: 820;
+}
+
+.ivans-launch-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* ─── IVANS Panel Container ──────────────────────────────────── */
+.ivans-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.ivans-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-strong);
+  color: var(--surface-warm);
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 9999;
+  animation: folder-sweep-in 240ms ease both;
+  pointer-events: none;
+}
+
+/* ─── Panel Header ───────────────────────────────────────────── */
+.ivans-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface-warm));
+  flex-wrap: wrap;
+}
+
+.ivans-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ivans-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ivans-panel-title h2 {
+  font-size: 16px;
+  font-weight: 820;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.ivans-panel-title p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.ivans-panel-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ivans-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.ivans-nav-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.ivans-nav-btn--active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ─── Loading ────────────────────────────────────────────────── */
+.ivans-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Dashboard ──────────────────────────────────────────────── */
+.ivans-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 24px;
+}
+
+.ivans-kpi-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ivans-kpi {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-warm);
+  animation: folder-sweep-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ivans-kpi svg { color: var(--accent); flex-shrink: 0; }
+.ivans-kpi div { display: grid; gap: 2px; }
+.ivans-kpi strong { font-size: 18px; font-weight: 820; color: var(--text-strong); }
+.ivans-kpi span { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.ivans-kpi--alert { border-color: rgba(211,84,0,0.3); background: rgba(211,84,0,0.05); }
+.ivans-kpi--alert svg, .ivans-kpi--alert strong { color: #d35400; }
+.ivans-kpi--error { border-color: rgba(192,57,43,0.3); background: rgba(192,57,43,0.05); }
+.ivans-kpi--error svg, .ivans-kpi--error strong { color: #c0392b; }
+
+/* ─── Sections ───────────────────────────────────────────────── */
+.ivans-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ivans-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.ivans-section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 820;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.ivans-section-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Carrier Cards ──────────────────────────────────────────── */
+.ivans-carrier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ivans-carrier-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-warm);
+  animation: folder-sweep-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ivans-carrier-card--active { border-left: 3px solid #2f7d62; }
+.ivans-carrier-card--error { border-left: 3px solid #c0392b; background: rgba(192,57,43,0.03); }
+.ivans-carrier-card--paused { border-left: 3px solid var(--text-muted); }
+.ivans-carrier-card--pending_setup { border-left: 3px solid var(--gold); }
+
+.ivans-carrier-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ivans-carrier-status { flex-shrink: 0; }
+
+.ivans-carrier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ivans-carrier-info strong { font-size: 13px; font-weight: 820; color: var(--text-strong); }
+.ivans-carrier-info span { font-size: 11px; color: var(--text-muted); }
+
+.ivans-carrier-error { color: #c0392b !important; font-size: 11px; }
+.ivans-carrier-last-sync { color: var(--accent) !important; }
+
+.ivans-sync-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ivans-sync-btn--syncing { opacity: 0.7; }
+
+/* ─── Empty State ────────────────────────────────────────────── */
+.ivans-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.ivans-empty p { margin: 0; font-size: 13px; }
+.ivans-empty svg { opacity: 0.4; }
+
+/* ─── Synced Policy Rows ─────────────────────────────────────── */
+.ivans-synced-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ivans-policy-row {
+  border-bottom: 1px solid var(--border);
+  animation: folder-sweep-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ivans-policy-row:last-child { border-bottom: 0; }
+
+.ivans-policy-row--renewal {
+  border-left: 3px solid #d35400;
+  background: rgba(211,84,0,0.03);
+}
+
+.ivans-policy-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  flex-wrap: wrap;
+}
+
+.ivans-expand-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: color 120ms ease;
+}
+
+.ivans-expand-btn:hover { color: var(--accent); transform: none; }
+
+.ivans-policy-identity {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ivans-policy-identity strong { font-size: 13px; font-weight: 820; color: var(--text-strong); }
+
+.ivans-policy-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ivans-policy-badges {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ivans-tx-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 820;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.ivans-status-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.ivans-status--orange { background: rgba(211,84,0,0.12); color: #d35400; }
+.ivans-status--green  { background: rgba(47,125,98,0.12);  color: #2f7d62; }
+.ivans-status--red    { background: rgba(192,57,43,0.12);  color: #c0392b; }
+.ivans-status--neutral { background: var(--surface-muted); color: var(--text-muted); }
+
+.ivans-policy-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ivans-policy-premiums {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.ivans-policy-premiums strong { color: var(--text); font-weight: 820; }
+.ivans-premium--up em { color: #c0392b; font-style: normal; font-weight: 820; font-size: 11px; margin-left: 4px; }
+.ivans-premium--same strong { color: #2f7d62; }
+
+.ivans-policy-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ivans-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 5px 12px;
+  min-height: 30px;
+}
+
+/* Policy detail panel */
+.ivans-policy-detail {
+  padding: 12px 16px 14px 38px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-muted);
+  animation: folder-content-unfurl 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ivans-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 20px;
+}
+
+.ivans-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ivans-detail-grid span {
+  font-size: 10px;
+  font-weight: 820;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ivans-detail-grid strong {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ivans-ai-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--accent-strong) !important;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ─── Connections View ───────────────────────────────────────── */
+.ivans-connections-view,
+.ivans-queue-view {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ivans-add-form {
+  padding: 18px 20px;
+  border-radius: 10px;
+  animation: folder-sweep-in 240ms ease both;
+}
+
+.ivans-add-form h4 { font-size: 14px; font-weight: 820; margin: 0 0 6px; }
+.ivans-form-note { font-size: 12px; color: var(--text-muted); margin: 0 0 14px; }
+
+.ivans-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ivans-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.ivans-connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ivans-connection-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-warm);
+}
+
+.ivans-connection-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ivans-connection-row--active .ivans-connection-status-dot { background: #2f7d62; }
+.ivans-connection-row--error .ivans-connection-status-dot { background: #c0392b; }
+.ivans-connection-row--paused .ivans-connection-status-dot { background: var(--text-muted); }
+.ivans-connection-row--pending_setup .ivans-connection-status-dot { background: var(--gold); }
+
+.ivans-connection-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ivans-connection-info strong { font-size: 13px; font-weight: 820; }
+.ivans-connection-info span { font-size: 11px; color: var(--text-muted); }
+
+.ivans-connection-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ivans-delete-btn { color: #c0392b !important; }
+.ivans-delete-btn:hover { background: rgba(192,57,43,0.1) !important; border-color: rgba(192,57,43,0.3) !important; }
+
+/* ─── Sync Log Rows ──────────────────────────────────────────── */
+.ivans-sync-log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  flex-wrap: wrap;
+}
+
+.ivans-log-icon { display: flex; align-items: center; flex-shrink: 0; }
+.ivans-sync-log-row--completed .ivans-log-icon { color: #2f7d62; }
+.ivans-sync-log-row--failed .ivans-log-icon { color: #c0392b; }
+.ivans-log-error { color: #c0392b; }
+
+/* ─── Queue Filters ──────────────────────────────────────────── */
+.ivans-queue-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ─── Upload Modal ───────────────────────────────────────────── */
+.ivans-upload-modal { max-width: 580px; }
+.ivans-upload-note { font-size: 13px; color: var(--text-muted); margin: 0 0 4px; }
+.ivans-upload-toggle { display: flex; gap: 6px; margin-bottom: 4px; }
+
+.ivans-file-drop {
+  display: block;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+
+.ivans-file-drop span { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.ivans-file-name { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); margin-top: 8px; }
+
+.ivans-paste-area { font-family: 'Courier New', monospace; font-size: 11px; }
+
 /* ─── Dark mode for new components ───────────────────────────── */
 
 .app-shell[data-mode='dark'] .notif-panel,
