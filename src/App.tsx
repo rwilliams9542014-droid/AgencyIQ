@@ -4639,7 +4639,7 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
   const handleZap = () => {
     setZapping(true)
     setShowBubble(false)
-    setTimeout(() => setDismissed(true), 1400)
+    setTimeout(() => setDismissed(true), 1600)
   }
 
   if (dismissed) return null
@@ -4648,17 +4648,114 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
 
   return (
     <>
-      {/* Full-screen lightning overlay */}
-      {zapping && (
-        <div className="iq-zap-overlay" aria-hidden="true">
-          <svg className="iq-zap-bolt" viewBox="0 0 120 600" preserveAspectRatio="none">
-            <polyline className="iq-bolt-path" points="60,0 30,180 55,180 20,380 50,380 10,600" />
-            <polyline className="iq-bolt-path iq-bolt-branch" points="55,180 80,280 65,280 90,370" />
-          </svg>
-          <div className="iq-zap-flash" />
-          <div className="iq-zap-shockwave" style={{ left: pos.x + 45, top: pos.y + 45 }} />
-        </div>
-      )}
+      {/* Full-screen lightning overlay — bolts radiate from mascot */}
+      {zapping && (() => {
+        const cx = pos.x + 45;
+        const cy = pos.y + 45;
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        // Each bolt: from mascot center → corner/edge target, with jagged midpoints
+        const bolts: { pts: string; delay: number; branch?: string }[] = [
+          // top-left corner
+          {
+            pts: `${cx},${cy} ${cx * 0.6},${cy * 0.5} ${cx * 0.3},${cy * 0.2} 0,0`,
+            delay: 0,
+            branch: `${cx * 0.6},${cy * 0.5} ${cx * 0.45},${cy * 0.35} ${cx * 0.25},${cy * 0.45}`,
+          },
+          // top center
+          {
+            pts: `${cx},${cy} ${cx + 20},${cy * 0.4} ${cx - 15},${cy * 0.1} ${cx + 10},0`,
+            delay: 0.05,
+            branch: `${cx + 20},${cy * 0.4} ${cx + 60},${cy * 0.25} ${cx + 80},${cy * 0.35}`,
+          },
+          // top-right corner
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.7},${cy * 0.25} ${W},0`,
+            delay: 0.02,
+            branch: `${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.55},${cy * 0.45} ${cx + (W - cx) * 0.65},${cy * 0.6}`,
+          },
+          // right edge mid
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.75},${cy - 20} ${W},${cy + 10}`,
+            delay: 0.08,
+            branch: `${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.5},${cy + 80} ${cx + (W - cx) * 0.7},${cy + 60}`,
+          },
+          // bottom-right corner
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.6},${cy + (H - cy) * 0.7} ${W},${H}`,
+            delay: 0.03,
+            branch: `${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.4},${cy + (H - cy) * 0.55} ${cx + (W - cx) * 0.25},${cy + (H - cy) * 0.6}`,
+          },
+          // bottom center
+          {
+            pts: `${cx},${cy} ${cx - 25},${cy + (H - cy) * 0.45} ${cx + 20},${cy + (H - cy) * 0.75} ${cx - 10},${H}`,
+            delay: 0.06,
+            branch: `${cx - 25},${cy + (H - cy) * 0.45} ${cx - 70},${cy + (H - cy) * 0.5} ${cx - 90},${cy + (H - cy) * 0.65}`,
+          },
+          // bottom-left corner
+          {
+            pts: `${cx},${cy} ${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.35},${cy + (H - cy) * 0.65} 0,${H}`,
+            delay: 0.04,
+            branch: `${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.55},${cy + (H - cy) * 0.5} ${cx * 0.35},${cy + (H - cy) * 0.45}`,
+          },
+          // left edge mid
+          {
+            pts: `${cx},${cy} ${cx * 0.55},${cy - 20} ${cx * 0.25},${cy + 30} 0,${cy + 15}`,
+            delay: 0.07,
+            branch: `${cx * 0.55},${cy - 20} ${cx * 0.45},${cy - 60} ${cx * 0.3},${cy - 50}`,
+          },
+        ];
+        return (
+          <div className="iq-zap-overlay" aria-hidden="true">
+            <svg className="iq-radial-bolts" viewBox={`0 0 ${W} ${H}`}>
+              <defs>
+                <filter id="bolt-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3" result="blur1" />
+                  <feGaussianBlur stdDeviation="8" result="blur2" />
+                  <feMerge>
+                    <feMergeNode in="blur2" />
+                    <feMergeNode in="blur1" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <filter id="bolt-glow-wide" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="14" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {bolts.map((b, i) => (
+                <g key={i} style={{ animationDelay: `${b.delay}s` }}>
+                  {/* Wide glow layer */}
+                  <polyline
+                    className="iq-radial-bolt-glow"
+                    points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }}
+                  />
+                  {/* Core bolt */}
+                  <polyline
+                    className="iq-radial-bolt-core"
+                    points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }}
+                  />
+                  {b.branch && (
+                    <polyline
+                      className="iq-radial-bolt-branch"
+                      points={b.branch}
+                      style={{ animationDelay: `${b.delay + 0.04}s` }}
+                    />
+                  )}
+                </g>
+              ))}
+              {/* Origin burst */}
+              <circle className="iq-zap-origin" cx={cx} cy={cy} r="8" />
+            </svg>
+            <div className="iq-zap-flash" />
+          </div>
+        );
+      })()}
 
     <div
       className={`iq-buddy iq-buddy--${anim}${zapping ? ' iq-buddy--zapping' : ''}`}
