@@ -5604,15 +5604,18 @@ tbody tr:hover {
   flex-shrink: 0;
 }
 
-.wizard-mascot-wrap::before {
-  content: '';
+.wizard-mascot-glow {
   position: absolute;
-  inset: -24px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(24, 212, 195, 0.22) 0%, transparent 70%);
-  filter: blur(16px);
+  background: radial-gradient(circle, rgba(24, 212, 195, 0.28) 0%, transparent 70%);
+  filter: blur(24px);
   pointer-events: none;
   z-index: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .wizard-mascot-img {
@@ -6515,16 +6518,18 @@ tbody tr:hover {
   position: relative;
 }
 
-/* Teal ambient glow behind the mascot — same trick as landing page hero */
-.iq-buddy-avatar::before {
-  content: '';
+.iq-buddy-glow {
   position: absolute;
-  inset: -20px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(24, 212, 195, 0.22) 0%, transparent 70%);
-  filter: blur(12px);
+  background: radial-gradient(circle, rgba(24, 212, 195, 0.28) 0%, transparent 70%);
+  filter: blur(18px);
   pointer-events: none;
   z-index: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .iq-buddy-avatar:hover {

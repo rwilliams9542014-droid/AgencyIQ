@@ -5,7 +5,7 @@ import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
 import { NewClientWizard } from './components/NewClientWizard'
 import { supabase } from './lib/supabase'
-import mascotImg from './assets/AGENCYIQ_MASCOT.png'
+import mascotImg from './assets/AGENCYIQ_MASCOT_CLEAR.png'
 import type { Client, CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
@@ -4645,6 +4645,7 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
         }}
         onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
       >
+        <div className="iq-buddy-glow" />
         <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
       </button>
       <button
