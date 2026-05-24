@@ -424,6 +424,43 @@
   background: var(--accent-soft);
 }
 
+/* ── Match Desktop / system option ── */
+.scheme-option--system {
+  border-style: dashed;
+}
+.scheme-option--system.active {
+  border-style: solid;
+}
+.scheme-system-icon {
+  width: 48px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.scheme-system-matched {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+  padding-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* When system theme active, OS-derived vars override palette vars */
+[data-system='true'] {
+  --accent:      var(--sys-accent,       var(--accent));
+  --accent-soft: var(--sys-accent-muted, var(--accent-soft));
+  --bg:          var(--sys-bg,           var(--bg));
+  --surface:     var(--sys-surface,      var(--surface));
+  --border:      var(--sys-border,       var(--border));
+  --text:        var(--sys-text,         var(--text));
+  --text-muted:  var(--sys-text-muted,   var(--text-muted));
+}
+
 .mode-toggle {
   width: 100%;
   min-height: 38px;
