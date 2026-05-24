@@ -4566,6 +4566,7 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
   const [showBubble, setShowBubble] = useState(false)
   const [anim, setAnim] = useState<'idle' | 'wave' | 'bounce'>('idle')
   const [dismissed, setDismissed] = useState(false)
+  const [zapping, setZapping] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [pos, setPos] = useState({ x: window.innerWidth - 120, y: window.innerHeight - 160 })
   const dragging = useRef(false)
@@ -4635,24 +4636,43 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
     }
   }, [])
 
+  const handleZap = () => {
+    setZapping(true)
+    setShowBubble(false)
+    setTimeout(() => setDismissed(true), 1400)
+  }
+
   if (dismissed) return null
 
   const bubbleLeft = pos.x < window.innerWidth / 2
 
   return (
+    <>
+      {/* Full-screen lightning overlay */}
+      {zapping && (
+        <div className="iq-zap-overlay" aria-hidden="true">
+          <svg className="iq-zap-bolt" viewBox="0 0 120 600" preserveAspectRatio="none">
+            <polyline className="iq-bolt-path" points="60,0 30,180 55,180 20,380 50,380 10,600" />
+            <polyline className="iq-bolt-path iq-bolt-branch" points="55,180 80,280 65,280 90,370" />
+          </svg>
+          <div className="iq-zap-flash" />
+          <div className="iq-zap-shockwave" style={{ left: pos.x + 45, top: pos.y + 45 }} />
+        </div>
+      )}
+
     <div
-      className={`iq-buddy iq-buddy--${anim}`}
+      className={`iq-buddy iq-buddy--${anim}${zapping ? ' iq-buddy--zapping' : ''}`}
       style={{ left: pos.x, top: pos.y }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Dismiss X — visible on hover */}
-      {hovered && (
+      {hovered && !zapping && (
         <button
           className="iq-buddy-close"
           type="button"
           aria-label="Remove IQ Buddy"
-          onClick={() => setDismissed(true)}
+          onClick={handleZap}
         >
           ×
         </button>
@@ -4702,6 +4722,7 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
         <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
       </button>
     </div>
+    </>
   )
 }
 

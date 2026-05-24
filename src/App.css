@@ -6557,6 +6557,116 @@ tbody tr:hover {
   100% { transform: translateY(0) scale(1); }
 }
 
+/* ─── Zap / destroy animation ──────────────────────────────────── */
+.iq-buddy--zapping .iq-buddy-avatar {
+  animation: iq-zap-mascot 1.2s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes iq-zap-mascot {
+  0%   { transform: scale(1); filter: brightness(1); opacity: 1; }
+  10%  { transform: scale(1.15); filter: brightness(4) saturate(0); }
+  20%  { transform: scale(0.9); filter: brightness(1); opacity: 1; }
+  30%  { transform: scale(1.2); filter: brightness(6) saturate(0); }
+  45%  { transform: scale(0.7) rotate(-8deg); filter: brightness(2) saturate(0); opacity: 0.8; }
+  60%  { transform: scale(1.3) rotate(4deg); filter: brightness(8) saturate(0); opacity: 0.5; }
+  80%  { transform: scale(0.2) rotate(-15deg); filter: brightness(10) saturate(0); opacity: 0.2; }
+  100% { transform: scale(0); filter: brightness(20); opacity: 0; }
+}
+
+/* Full-screen overlay */
+.iq-zap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* White flash that pulses on impact */
+.iq-zap-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  animation: iq-flash 1.1s ease-out forwards;
+}
+
+@keyframes iq-flash {
+  0%   { opacity: 0; }
+  8%   { opacity: 0.7; }
+  16%  { opacity: 0; }
+  28%  { opacity: 0.9; }
+  38%  { opacity: 0; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
+/* Bolt SVG */
+.iq-zap-bolt {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 100vh;
+  animation: iq-bolt-appear 1.1s ease-out forwards;
+}
+
+@keyframes iq-bolt-appear {
+  0%   { opacity: 0; }
+  5%   { opacity: 1; }
+  18%  { opacity: 0; }
+  30%  { opacity: 1; }
+  44%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.iq-bolt-path {
+  fill: none;
+  stroke: #fff176;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px #ffe600) drop-shadow(0 0 28px #ff9900);
+  animation: iq-bolt-draw 1.1s ease-out forwards;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+}
+
+.iq-bolt-branch {
+  stroke-width: 3;
+  stroke: #ffe066;
+}
+
+@keyframes iq-bolt-draw {
+  0%   { stroke-dashoffset: 1200; opacity: 0; }
+  6%   { stroke-dashoffset: 0; opacity: 1; }
+  20%  { stroke-dashoffset: 0; opacity: 0; }
+  32%  { stroke-dashoffset: 1200; opacity: 0; }
+  34%  { stroke-dashoffset: 0; opacity: 1; }
+  48%  { stroke-dashoffset: 0; opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Circular shockwave from impact point */
+.iq-zap-shockwave {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 3px solid #ffe600;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 18px #ffe600, 0 0 40px #ff9900;
+  animation: iq-shockwave 0.9s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes iq-shockwave {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  60%  { transform: translate(-50%, -50%) scale(18); opacity: 0.5; border-color: #ff9900; }
+  100% { transform: translate(-50%, -50%) scale(32); opacity: 0; }
+}
+
 /* ════════════════════════════════════════════════════════════════
    ADDRESS AUTOCOMPLETE
    ════════════════════════════════════════════════════════════════ */
