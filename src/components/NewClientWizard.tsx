@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { CircleCheck as CheckCircle2, ChevronRight, Cloud, FilePlus, FolderOpen, X } from 'lucide-react'
 import mascot from '../assets/AGENCYIQ_MASCOT.png'
 import type { Client, LineOfBusiness, UserProfile } from '../data/crmTypes'
@@ -568,15 +568,104 @@ function ContactFields({ data, set, firstFieldRef, showPrimaryContact }: {
   )
 }
 
+interface NominatimResult {
+  place_id: number
+  display_name: string
+  address: {
+    house_number?: string
+    road?: string
+    city?: string
+    town?: string
+    village?: string
+    county?: string
+    state?: string
+    postcode?: string
+  }
+}
+
 function AddressFields({ data, set, firstFieldRef }: {
   data: WizardData
   set: (k: keyof WizardData, v: string) => void
   firstFieldRef: React.RefObject<HTMLInputElement>
 }) {
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  const handleStreetChange = (value: string) => {
+    set('mailingAddress', value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (value.length < 5) { setSuggestions([]); setShowSuggestions(false); return }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&q=${encodeURIComponent(value)}`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        const results: NominatimResult[] = await res.json()
+        setSuggestions(results)
+        setShowSuggestions(results.length > 0)
+      } catch {
+        setSuggestions([])
+      } finally {
+        setLoading(false)
+      }
+    }, 420)
+  }
+
+  const selectSuggestion = (r: NominatimResult) => {
+    const a = r.address
+    const streetNum = a.house_number ? `${a.house_number} ` : ''
+    const road = a.road ?? ''
+    set('mailingAddress', `${streetNum}${road}`.trim())
+    set('city', a.city ?? a.town ?? a.village ?? '')
+    set('state', a.state ?? '')
+    set('zip', a.postcode ?? '')
+    set('county', a.county ?? '')
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   return (
     <div className="wizard-fields">
       <WField label="Street Address" full>
-        <input ref={firstFieldRef} value={data.mailingAddress} onChange={(e) => set('mailingAddress', e.target.value)} placeholder="123 Main Street" autoComplete="street-address" />
+        <div className="addr-autocomplete-wrap" ref={wrapRef}>
+          <input
+            ref={firstFieldRef}
+            value={data.mailingAddress}
+            onChange={(e) => handleStreetChange(e.target.value)}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
+            placeholder="Start typing an address…"
+            autoComplete="off"
+          />
+          {loading && <span className="addr-loading-indicator" aria-label="Searching" />}
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="addr-suggestions" role="listbox">
+              {suggestions.map((r) => (
+                <li
+                  key={r.place_id}
+                  role="option"
+                  className="addr-suggestion-item"
+                  onMouseDown={(e) => { e.preventDefault(); selectSuggestion(r) }}
+                >
+                  {r.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </WField>
       <WField label="City" full={false}>
         <input value={data.city} onChange={(e) => set('city', e.target.value)} placeholder="City" autoComplete="address-level2" />

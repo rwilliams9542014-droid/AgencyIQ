@@ -6051,12 +6051,13 @@ tbody tr:hover {
 }
 
 .ai-panel-mascot {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex-shrink: 0;
-  filter: drop-shadow(0 2px 8px rgba(5, 11, 22, 0.18));
+  filter: drop-shadow(0 4px 10px rgba(5, 11, 22, 0.2));
   animation: mascot-float 4s ease-in-out infinite;
+  background: transparent;
 }
 
 .ai-answer-mascot {
@@ -6094,10 +6095,15 @@ tbody tr:hover {
 }
 
 .iq-ai-trigger-mascot {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
-  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 1px 4px rgba(5, 11, 22, 0.15));
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms;
+}
+
+.iq-ai-trigger:hover .iq-ai-trigger-mascot {
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent));
 }
 
 .iq-ai-trigger:hover .iq-ai-trigger-mascot {
@@ -6144,19 +6150,6 @@ tbody tr:hover {
   align-items: center;
   gap: 8px;
   padding: 8px 0 16px;
-}
-
-.wizard-completion-check {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
-  animation: wizard-enter 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  color: #fff;
 }
 
 .wizard-completion-wrap h3 {
@@ -6475,36 +6468,36 @@ tbody tr:hover {
 
 /* ─── Avatar button ────────────────────────────────────────────── */
 .iq-buddy-avatar {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  border: 2px solid var(--border);
-  background: var(--surface);
+  border: none;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  box-shadow: 0 6px 24px rgba(5, 11, 22, 0.14), 0 2px 6px rgba(5, 11, 22, 0.08);
-  transition: border-color 200ms, box-shadow 200ms, transform 200ms;
+  padding: 0;
+  box-shadow: none;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms;
   animation: mascot-float 4s ease-in-out infinite;
   position: relative;
+  filter: drop-shadow(0 8px 16px rgba(5, 11, 22, 0.22));
 }
 
 .iq-buddy-avatar:hover {
-  border-color: var(--accent);
-  box-shadow: 0 8px 32px color-mix(in srgb, var(--accent) 30%, transparent), 0 2px 8px rgba(5, 11, 22, 0.12);
-  transform: scale(1.08);
+  transform: scale(1.12);
   animation: none;
+  filter: drop-shadow(0 6px 20px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
 /* Teal glow ring on hover */
 .iq-buddy-avatar::after {
   content: '';
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
   opacity: 0;
   transition: opacity 200ms;
 }
@@ -6517,7 +6510,6 @@ tbody tr:hover {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 50%;
 }
 
 /* ─── Animation states ─────────────────────────────────────────── */
@@ -6565,5 +6557,139 @@ tbody tr:hover {
 .iq-buddy-hide:hover {
   color: var(--text);
   background: var(--border);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ADDRESS AUTOCOMPLETE
+   ════════════════════════════════════════════════════════════════ */
+
+.addr-autocomplete-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.addr-autocomplete-wrap input {
+  width: 100%;
+}
+
+.addr-loading-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+.addr-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(5, 11, 22, 0.14);
+  z-index: 200;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: wizard-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.addr-suggestion-item {
+  padding: 9px 14px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.45;
+  transition: background 120ms;
+}
+
+.addr-suggestion-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  color: var(--accent);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   POLICY MODAL IQ TIPS
+   ════════════════════════════════════════════════════════════════ */
+
+.policy-modal-iq {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-left: 1.5px solid var(--border);
+  padding-left: 20px;
+  min-width: 200px;
+  max-width: 220px;
+}
+
+.policy-iq-mascot-wrap {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+.policy-iq-mascot {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(5, 11, 22, 0.2));
+  animation: mascot-float 4s ease-in-out infinite;
+}
+
+.policy-iq-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.policy-iq-tip {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-warm));
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 8px;
+  padding: 10px 12px;
+  animation: wizard-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.policy-iq-tip strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.policy-iq-tip p {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.policy-modal-body-with-iq {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.policy-modal-fields {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 20px;
 }
 

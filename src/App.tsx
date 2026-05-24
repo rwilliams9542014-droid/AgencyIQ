@@ -2962,7 +2962,11 @@ function App() {
 
       {/* ─── IQ Buddy floating mascot ────────────────────────── */}
       {!aiHelpOpen && (
-        <IqBuddy onOpen={() => setAiHelpOpen(true)} />
+        <IqBuddy
+          onOpen={() => setAiHelpOpen(true)}
+          activeView={activeView}
+          clientTab={clientTab}
+        />
       )}
     </div>
   )
@@ -3603,6 +3607,47 @@ function ComboInput({ label, value, onChange, options, onAddCustom, placeholder,
   )
 }
 
+const POLICY_IQ_TIPS: Record<string, { title: string; body: string }[]> = {
+  policyType: [
+    { title: 'Why it matters', body: 'Policy type determines the coverage form, rating factors, and which carrier programs apply. Select the most specific type available.' },
+    { title: 'Pro tip', body: 'If you offer both HO3 and HO5 homeowners, HO5 provides broader open-peril coverage — worth mentioning to the client.' },
+  ],
+  carrier: [
+    { title: 'Carrier selection', body: 'Different carriers have different appetites. Match the risk profile to the right carrier to avoid future non-renewals.' },
+    { title: 'Remember', body: 'Verify the carrier is currently appointed and writing in this state before binding.' },
+  ],
+  policyNumber: [
+    { title: 'Policy number', body: "Enter the exact policy number from the carrier's declaration page or confirmation. This is used for IVANS sync and billing reconciliation." },
+  ],
+  premium: [
+    { title: 'Annual premium', body: 'Enter the total annual premium, not the monthly installment. Your commission calculation is based on this figure.' },
+    { title: 'Accuracy', body: 'Accurate premium entry keeps your agency revenue reports reliable and your E&O exposure low.' },
+  ],
+  commissionRate: [
+    { title: 'Commission rate', body: 'Standard P&C commissions range 10–15%. Life & Health can be higher. Check your carrier appointment agreement.' },
+    { title: 'New business vs renewal', body: 'New business commissions are often higher than renewal rates — confirm which applies here.' },
+  ],
+  lineOfBusiness: [
+    { title: 'Line of business', body: 'This drives reporting, compliance tracking, and E&O coverage. Misclassifying commercial as personal can create coverage gaps.' },
+  ],
+  effectiveDate: [
+    { title: 'Effective date', body: "This is when coverage begins. Make sure it matches the binder or carrier confirmation — even a one-day gap can void a claim." },
+  ],
+  expirationDate: [
+    { title: 'Expiration date', body: 'The renewal pipeline pulls from this date. An accurate expiration triggers your 90/60/30-day renewal workflow automatically.' },
+    { title: 'Required field', body: 'Expiration date is required so the system can alert you before the policy lapses.' },
+  ],
+  billingType: [
+    { title: 'Direct Bill', body: 'Carrier invoices the client directly. Agency is not responsible for collecting premium.' },
+    { title: 'Agency Bill', body: 'Agency collects from client and remits to carrier. Greater cash flow control but requires tight reconciliation.' },
+    { title: 'Financed', body: "Client finances the premium through a premium finance company. Confirm the finance company's cancellation terms." },
+  ],
+  default: [
+    { title: 'Adding a policy', body: 'Complete all required fields (Policy Type, Carrier, Expiration Date) to save. The more detail you enter, the more useful the renewal workflow becomes.' },
+    { title: 'Need help?', body: 'Click "Ask IQ" anytime to get plain-language explanations of coverage terms or carrier guidelines.' },
+  ],
+}
+
 function AddPolicyModal({ clientName, onClose, onSave, allPolicyTypes, allCarriers, onAddPolicyType, onAddCarrier }: {
   clientName: string
   onClose: () => void
@@ -3613,65 +3658,91 @@ function AddPolicyModal({ clientName, onClose, onSave, allPolicyTypes, allCarrie
   onAddCarrier: (c: string) => void
 }) {
   const [form, setForm] = useState({ policyType: '', carrier: '', policyNumber: '', premium: '', commissionRate: '', effectiveDate: '', expirationDate: '', billingType: 'Direct Bill', lineOfBusiness: 'Personal lines' })
+  const [focusedField, setFocusedField] = useState('default')
   const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  const tips = POLICY_IQ_TIPS[focusedField] ?? POLICY_IQ_TIPS.default
   return (
     <ModalShell title={`Add Policy — ${clientName}`} onClose={onClose}>
-      <div className="modal-form">
-        <ComboInput
-          label="Policy Type"
-          required
-          autoFocus
-          value={form.policyType}
-          onChange={(v) => set('policyType', v)}
-          options={allPolicyTypes}
-          onAddCustom={onAddPolicyType}
-          placeholder="Search or type policy type..."
-        />
-        <ComboInput
-          label="Carrier"
-          required
-          value={form.carrier}
-          onChange={(v) => set('carrier', v)}
-          options={allCarriers}
-          onAddCustom={onAddCarrier}
-          placeholder="Search or type carrier name..."
-        />
-        <label className="modal-field">
-          <span>Policy Number</span>
-          <input value={form.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} placeholder="Policy # from carrier" />
-        </label>
-        <label className="modal-field">
-          <span>Annual Premium ($)</span>
-          <input type="number" min="0" value={form.premium} onChange={(e) => set('premium', e.target.value)} placeholder="0.00" />
-        </label>
-        <label className="modal-field">
-          <span>Commission Rate (%)</span>
-          <input type="number" min="0" max="100" value={form.commissionRate} onChange={(e) => set('commissionRate', e.target.value)} placeholder="e.g. 12" />
-        </label>
-        <label className="modal-field">
-          <span>Line of Business</span>
-          <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
-            <option value="Personal lines">Personal Lines</option>
-            <option value="Commercial">Commercial</option>
-            <option value="Life & health">Life & Health</option>
-          </select>
-        </label>
-        <label className="modal-field">
-          <span>Effective Date</span>
-          <input type="date" value={form.effectiveDate} onChange={(e) => set('effectiveDate', e.target.value)} />
-        </label>
-        <label className="modal-field">
-          <span>Expiration Date *</span>
-          <input type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} />
-        </label>
-        <label className="modal-field modal-field--full">
-          <span>Billing Type</span>
-          <select value={form.billingType} onChange={(e) => set('billingType', e.target.value)}>
-            <option value="Direct Bill">Direct Bill</option>
-            <option value="Agency Bill">Agency Bill</option>
-            <option value="Financed">Financed</option>
-          </select>
-        </label>
+      <div className="policy-modal-body-with-iq">
+        <div className="policy-modal-fields">
+          <div className="modal-form" onFocus={(e) => {
+            const field = (e.target as HTMLElement).closest('[data-field]')?.getAttribute('data-field')
+            if (field) setFocusedField(field)
+          }}>
+            <div data-field="policyType">
+              <ComboInput
+                label="Policy Type"
+                required
+                autoFocus
+                value={form.policyType}
+                onChange={(v) => set('policyType', v)}
+                options={allPolicyTypes}
+                onAddCustom={onAddPolicyType}
+                placeholder="Search or type policy type..."
+              />
+            </div>
+            <div data-field="carrier">
+              <ComboInput
+                label="Carrier"
+                required
+                value={form.carrier}
+                onChange={(v) => set('carrier', v)}
+                options={allCarriers}
+                onAddCustom={onAddCarrier}
+                placeholder="Search or type carrier name..."
+              />
+            </div>
+            <label className="modal-field" data-field="policyNumber">
+              <span>Policy Number</span>
+              <input value={form.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} placeholder="Policy # from carrier" />
+            </label>
+            <label className="modal-field" data-field="premium">
+              <span>Annual Premium ($)</span>
+              <input type="number" min="0" value={form.premium} onChange={(e) => set('premium', e.target.value)} placeholder="0.00" />
+            </label>
+            <label className="modal-field" data-field="commissionRate">
+              <span>Commission Rate (%)</span>
+              <input type="number" min="0" max="100" value={form.commissionRate} onChange={(e) => set('commissionRate', e.target.value)} placeholder="e.g. 12" />
+            </label>
+            <label className="modal-field" data-field="lineOfBusiness">
+              <span>Line of Business</span>
+              <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
+                <option value="Personal lines">Personal Lines</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Life & health">Life & Health</option>
+              </select>
+            </label>
+            <label className="modal-field" data-field="effectiveDate">
+              <span>Effective Date</span>
+              <input type="date" value={form.effectiveDate} onChange={(e) => set('effectiveDate', e.target.value)} />
+            </label>
+            <label className="modal-field" data-field="expirationDate">
+              <span>Expiration Date *</span>
+              <input type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} />
+            </label>
+            <label className="modal-field modal-field--full" data-field="billingType">
+              <span>Billing Type</span>
+              <select value={form.billingType} onChange={(e) => set('billingType', e.target.value)}>
+                <option value="Direct Bill">Direct Bill</option>
+                <option value="Agency Bill">Agency Bill</option>
+                <option value="Financed">Financed</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <aside className="policy-modal-iq">
+          <div className="policy-iq-mascot-wrap">
+            <img src={mascotImg} alt="" aria-hidden="true" className="policy-iq-mascot" />
+          </div>
+          <div className="policy-iq-tips">
+            {tips.map((tip, i) => (
+              <div key={`${focusedField}-${i}`} className="policy-iq-tip">
+                <strong>{tip.title}</strong>
+                <p>{tip.body}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
       </div>
       <div className="modal-footer">
         <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
@@ -4403,27 +4474,110 @@ function CarrierPortalModal({ portals, onClose, onSave, onDelete }: {
 }
 
 // ─── IQ Buddy — floating animated mascot ─────────────────────────────────────
-const IQ_TIPS = [
-  "Renewal season? I've got your back.",
-  "Don't forget to follow up on open leads!",
-  "A quick check-in call keeps clients loyal.",
-  "Review expiring policies before the client does.",
+const IQ_CONTEXT_TIPS: Record<string, string[]> = {
+  'dashboard': [
+    "Your dashboard shows the pulse of your agency. Any KPIs looking off?",
+    "Check your renewal pipeline daily — early outreach wins retention.",
+    "Need help explaining a metric or coverage term to a client? Ask me!",
+  ],
+  'clients': [
+    "Looking for a client? Try searching by phone number or policy number too.",
+    "Client health scores help you prioritize who needs attention first.",
+    "Sort by Last Contacted to find clients who may be feeling forgotten.",
+  ],
+  'profile-Overview': [
+    "The Overview tab is your quick snapshot — key contacts, policies, and status all in one place.",
+    "Check the client's health score here. 'At risk' means it's time to reach out.",
+    "You can add a note or task from the Overview without leaving this screen.",
+  ],
+  'profile-Policies': [
+    "Review expiration dates here — proactive renewal calls boost retention significantly.",
+    "Cross-selling tip: if a client only has auto, consider offering a home bundle.",
+    "A lapse in coverage can create liability for the agency. Keep dates current!",
+    "Expired policies should be flagged for re-write or non-renewal notation.",
+  ],
+  'profile-Billing': [
+    "Billing issues are a top reason clients leave. Catching them early saves the relationship.",
+    "Direct Bill means the carrier bills the client — Agency Bill means the agency does.",
+    "Mortgagee billing goes to the lender — confirm the mortgage company info is accurate.",
+    "If a client's on payment plan, confirm they haven't missed installments.",
+  ],
+  'profile-Tasks': [
+    "Tasks keep you organized and clients feeling well-served.",
+    "Use Follow-Up tasks after every client call — it creates an audit trail too.",
+    "Payment reminders reduce late payments and policy lapses.",
+  ],
+  'profile-Notes & History': [
+    "Document every significant client conversation — it protects you and helps the team.",
+    "Notes create a story of the relationship that any agent can pick up.",
+    "Pin important notes so they surface instantly when you open the folder.",
+  ],
+  'profile-Communications': [
+    "Email templates save time and keep your messaging consistent.",
+    "Personalized outreach dramatically improves renewal retention rates.",
+  ],
+  'profile-Activity': [
+    "Activity logs show every change made to this client — great for auditing.",
+    "If something looks off in the activity feed, it may indicate a data issue to review.",
+  ],
+  'profile-Contact & Account': [
+    "Keep contact info current — wrong numbers mean missed renewal calls.",
+    "Preferred contact method matters — some clients prefer text over calls.",
+    "Make sure the billing method here matches what's set on their policies.",
+  ],
+  'leads': [
+    "Move leads through stages quickly — the faster you quote, the higher the close rate.",
+    "Follow up within 24 hours of a new lead coming in. Speed wins.",
+    "A stalled lead at 'Quoted' stage usually needs a personal touch to close.",
+  ],
+  'renewals': [
+    "Renewals within 30 days need immediate outreach — the window is short.",
+    "Escrow policies auto-renew through the lender — still worth a courtesy call.",
+    "Premium increases at renewal are the #1 reason clients shop around. Be ready.",
+    "Reviewing a renewal? I can help you explain coverage changes or price differences.",
+  ],
+  'ivans': [
+    "Syncing from IVANS keeps your book of business accurate and up to date.",
+    "After a sync, review the Renewal flag — those need immediate agent action.",
+    "Match IVANS records to existing client folders to keep your CRM clean.",
+  ],
+}
+
+const IQ_DEFAULT_TIPS = [
   "Great agents anticipate — need help with anything?",
-  "New client added? Let's get their policies in order.",
-  "Ask me anything about coverage options.",
-  "Pro tip: sync carrier data to stay ahead of renewals.",
+  "Ask me anything about coverage, compliance, or client communication.",
   "Your renewal pipeline is the heartbeat of the agency.",
-  "Need to explain a coverage gap to a client? Ask me!",
+  "A quick check-in call keeps clients loyal.",
 ]
 
-function IqBuddy({ onOpen }: { onOpen: () => void }) {
+function getContextTips(activeView: AppView, clientTab: ClientTab): string[] {
+  const profileKey = `profile-${clientTab}`
+  if (activeView === 'profile' && IQ_CONTEXT_TIPS[profileKey]) return IQ_CONTEXT_TIPS[profileKey]
+  return IQ_CONTEXT_TIPS[activeView] ?? IQ_DEFAULT_TIPS
+}
+
+function IqBuddy({ onOpen, activeView, clientTab }: {
+  onOpen: () => void
+  activeView: AppView
+  clientTab: ClientTab
+}) {
   const [tipIndex, setTipIndex] = useState(0)
   const [showBubble, setShowBubble] = useState(false)
   const [anim, setAnim] = useState<'idle' | 'wave' | 'bounce'>('idle')
   const [dismissed, setDismissed] = useState(false)
+  const contextTips = getContextTips(activeView, clientTab)
+  const currentTip = contextTips[tipIndex % contextTips.length]
+
+  // Reset tip index when context changes, wave to signal new tip
+  useEffect(() => {
+    setTipIndex(0)
+    if (showBubble) {
+      setAnim('bounce')
+      setTimeout(() => setAnim('idle'), 600)
+    }
+  }, [activeView, clientTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Show tip bubble after 3 seconds on first load
     const intro = setTimeout(() => {
       setShowBubble(true)
       setAnim('wave')
@@ -4433,21 +4587,19 @@ function IqBuddy({ onOpen }: { onOpen: () => void }) {
   }, [])
 
   useEffect(() => {
-    // Rotate tips every 12 seconds while bubble is visible
     if (!showBubble) return
     const interval = setInterval(() => {
-      setTipIndex((i) => (i + 1) % IQ_TIPS.length)
+      setTipIndex((i) => (i + 1) % contextTips.length)
       setAnim('bounce')
       setTimeout(() => setAnim('idle'), 600)
     }, 12000)
     return () => clearInterval(interval)
-  }, [showBubble])
+  }, [showBubble, contextTips.length])
 
   useEffect(() => {
-    // Randomly wave every 20–40 seconds
     let timeout: ReturnType<typeof setTimeout>
     const schedule = () => {
-      const delay = 20000 + Math.random() * 20000
+      const delay = 22000 + Math.random() * 18000
       timeout = setTimeout(() => {
         setAnim('wave')
         setTimeout(() => setAnim('idle'), 800)
@@ -4472,7 +4624,7 @@ function IqBuddy({ onOpen }: { onOpen: () => void }) {
           >
             ×
           </button>
-          <p key={tipIndex} className="iq-buddy-tip">{IQ_TIPS[tipIndex]}</p>
+          <p key={`${activeView}-${clientTab}-${tipIndex}`} className="iq-buddy-tip">{currentTip}</p>
           <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
             Ask IQ
           </button>
@@ -4491,7 +4643,7 @@ function IqBuddy({ onOpen }: { onOpen: () => void }) {
             onOpen()
           }
         }}
-        onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) }}}
+        onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
       >
         <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
       </button>
