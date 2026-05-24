@@ -5,7 +5,7 @@ import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
 import { NewClientWizard } from './components/NewClientWizard'
 import { supabase } from './lib/supabase'
-import mascotImg from './assets/AgencyIQ_mascot.png'
+import mascotImg from './assets/AGENCYIQ_MASCOT.png'
 import type { Client, CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
@@ -1355,14 +1355,9 @@ function App() {
     <div className="app-shell" data-mode={mode} data-palette={palette}>
       <aside className="sidebar">
         <div className="logo-wrap sidebar-logo">
-          <button
-            className="logo-button"
-            type="button"
-            aria-label="Open AgencyIQ AI help"
-            onClick={() => setAiHelpOpen(true)}
-          >
+          <div className="logo-button">
             <img src={agencyIqLogo} alt="AgencyIQ Insurance CRM" />
-          </button>
+          </div>
         </div>
 
         <nav className="nav-list" aria-label="Primary navigation">
@@ -1434,14 +1429,9 @@ function App() {
             <Menu size={20} aria-hidden="true" />
           </button>
           <div className="logo-wrap header-logo mobile-only">
-            <button
-              className="logo-button"
-              type="button"
-              aria-label="Open AgencyIQ AI help"
-              onClick={() => setAiHelpOpen(true)}
-            >
+            <div className="logo-button">
               <img src={agencyIqLogo} alt="AgencyIQ Insurance CRM" />
-            </button>
+            </div>
           </div>
           <div className="search-box">
             <Search size={18} aria-hidden="true" />
@@ -2969,6 +2959,11 @@ function App() {
           ))}
         </div>
       )}
+
+      {/* ─── IQ Buddy floating mascot ────────────────────────── */}
+      {!aiHelpOpen && (
+        <IqBuddy onOpen={() => setAiHelpOpen(true)} />
+      )}
     </div>
   )
 }
@@ -4404,6 +4399,112 @@ function CarrierPortalModal({ portals, onClose, onSave, onDelete }: {
         </>
       )}
     </ModalShell>
+  )
+}
+
+// ─── IQ Buddy — floating animated mascot ─────────────────────────────────────
+const IQ_TIPS = [
+  "Renewal season? I've got your back.",
+  "Don't forget to follow up on open leads!",
+  "A quick check-in call keeps clients loyal.",
+  "Review expiring policies before the client does.",
+  "Great agents anticipate — need help with anything?",
+  "New client added? Let's get their policies in order.",
+  "Ask me anything about coverage options.",
+  "Pro tip: sync carrier data to stay ahead of renewals.",
+  "Your renewal pipeline is the heartbeat of the agency.",
+  "Need to explain a coverage gap to a client? Ask me!",
+]
+
+function IqBuddy({ onOpen }: { onOpen: () => void }) {
+  const [tipIndex, setTipIndex] = useState(0)
+  const [showBubble, setShowBubble] = useState(false)
+  const [anim, setAnim] = useState<'idle' | 'wave' | 'bounce'>('idle')
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    // Show tip bubble after 3 seconds on first load
+    const intro = setTimeout(() => {
+      setShowBubble(true)
+      setAnim('wave')
+      setTimeout(() => setAnim('idle'), 800)
+    }, 3000)
+    return () => clearTimeout(intro)
+  }, [])
+
+  useEffect(() => {
+    // Rotate tips every 12 seconds while bubble is visible
+    if (!showBubble) return
+    const interval = setInterval(() => {
+      setTipIndex((i) => (i + 1) % IQ_TIPS.length)
+      setAnim('bounce')
+      setTimeout(() => setAnim('idle'), 600)
+    }, 12000)
+    return () => clearInterval(interval)
+  }, [showBubble])
+
+  useEffect(() => {
+    // Randomly wave every 20–40 seconds
+    let timeout: ReturnType<typeof setTimeout>
+    const schedule = () => {
+      const delay = 20000 + Math.random() * 20000
+      timeout = setTimeout(() => {
+        setAnim('wave')
+        setTimeout(() => setAnim('idle'), 800)
+        schedule()
+      }, delay)
+    }
+    schedule()
+    return () => clearTimeout(timeout)
+  }, [])
+
+  if (dismissed) return null
+
+  return (
+    <div className={`iq-buddy iq-buddy--${anim}`}>
+      {showBubble && (
+        <div className="iq-buddy-bubble">
+          <button
+            className="iq-buddy-dismiss"
+            type="button"
+            aria-label="Dismiss tip"
+            onClick={(e) => { e.stopPropagation(); setShowBubble(false) }}
+          >
+            ×
+          </button>
+          <p key={tipIndex} className="iq-buddy-tip">{IQ_TIPS[tipIndex]}</p>
+          <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
+            Ask IQ
+          </button>
+        </div>
+      )}
+      <button
+        className="iq-buddy-avatar"
+        type="button"
+        aria-label="Open IQ AI assistant"
+        onClick={() => {
+          if (!showBubble) {
+            setShowBubble(true)
+            setAnim('wave')
+            setTimeout(() => setAnim('idle'), 800)
+          } else {
+            onOpen()
+          }
+        }}
+        onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) }}}
+      >
+        <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
+      </button>
+      <button
+        className="iq-buddy-hide"
+        type="button"
+        aria-label="Hide IQ buddy"
+        onClick={() => setDismissed(true)}
+        title="Hide for this session"
+      >
+        ×
+      </button>
+    </div>
   )
 }
 
