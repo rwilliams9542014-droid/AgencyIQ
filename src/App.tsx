@@ -1529,7 +1529,9 @@ function App() {
   const handleKicked = useCallback(() => setSessionKicked(true), [])
   useEffect(() => {
     const uid = dataset.currentUser?.id
-    if (!uid || uid.startsWith('u-')) return
+    // Only enforce single-session for real Supabase UUID users, not demo/seed accounts
+    const isRealUser = uid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uid)
+    if (!isRealUser) return
     return startHeartbeat(uid, handleKicked)
   }, [dataset.currentUser?.id, handleKicked])
 
