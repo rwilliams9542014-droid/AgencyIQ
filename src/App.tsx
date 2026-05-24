@@ -642,7 +642,11 @@ function App() {
   }, [customCarriers])
 
   useEffect(() => {
-    localStorage.setItem('agencyiq-carrier-portals', JSON.stringify(carrierPortals))
+    localStorage.setItem('ag
+    )
+  }
+  )
+}encyiq-carrier-portals', JSON.stringify(carrierPortals))
   }, [carrierPortals])
 
   useEffect(() => {
