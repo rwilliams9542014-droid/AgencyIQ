@@ -642,11 +642,7 @@ function App() {
   }, [customCarriers])
 
   useEffect(() => {
-    localStorage.setItem('ag
-    )
-  }
-  )
-}encyiq-carrier-portals', JSON.stringify(carrierPortals))
+    localStorage.setItem('agencyiq-carrier-portals', JSON.stringify(carrierPortals))
   }, [carrierPortals])
 
   useEffect(() => {
@@ -1404,6 +1400,12 @@ function App() {
             )
           })}
         </nav>
+
+        <IqBuddy
+          onOpen={() => setAiHelpOpen(true)}
+          activeView={activeView}
+          clientTab={clientTab}
+        />
 
         <div className="sidebar-card">
           <BriefcaseBusiness size={20} aria-hidden="true" />
@@ -2762,7 +2764,10 @@ function App() {
         <aside className="ai-help-panel" aria-label="AgencyIQ AI help">
           <div className="ai-help-header">
             <div className="ai-help-mascot-row">
-              <img src={mascotImg} alt="AgencyIQ assistant" className="ai-panel-mascot" />
+              <div className="ai-panel-mascot-wrap">
+                <div className="ai-panel-mascot-glow" />
+                <img src={mascotImg} alt="AgencyIQ assistant" className="ai-panel-mascot" />
+              </div>
               <div>
                 <span className="ai-kicker">
                   <Bot size={15} aria-hidden="true" />
@@ -2822,7 +2827,7 @@ function App() {
 
           {aiLoading && (
             <div className="ai-loading">
-              <img src={mascotImg} alt="" className="ai-loading-mascot" aria-hidden="true" />
+              <div className="ai-mascot-wrap"><div className="ai-mascot-glow" /><img src={mascotImg} alt="" className="ai-loading-mascot" aria-hidden="true" /></div>
               <span className="ai-loading-dot" /><span className="ai-loading-dot" /><span className="ai-loading-dot" />
               <span>Thinking…</span>
             </div>
@@ -2831,7 +2836,7 @@ function App() {
           {aiAnswer && !aiLoading && (
             <div className="ai-answer-panel">
               <div className="ai-answer-header">
-                <img src={mascotImg} alt="" className="ai-answer-mascot" aria-hidden="true" />
+                <div className="ai-mascot-wrap"><div className="ai-mascot-glow" /><img src={mascotImg} alt="" className="ai-answer-mascot" aria-hidden="true" /></div>
                 <strong>AgencyIQ says:</strong>
                 <button className="text-button ai-clear-btn" type="button" onClick={() => { setAiAnswer(''); setAiQuery('') }}>
                   Ask another
@@ -2964,14 +2969,6 @@ function App() {
         </div>
       )}
 
-      {/* ─── IQ Buddy floating mascot ────────────────────────── */}
-      {!aiHelpOpen && (
-        <IqBuddy
-          onOpen={() => setAiHelpOpen(true)}
-          activeView={activeView}
-          clientTab={clientTab}
-        />
-      )}
     </div>
   )
 }
@@ -4568,7 +4565,6 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
   const [tipIndex, setTipIndex] = useState(0)
   const [showBubble, setShowBubble] = useState(false)
   const [anim, setAnim] = useState<'idle' | 'wave' | 'bounce'>('idle')
-  const [dismissed, setDismissed] = useState(false)
   const contextTips = getContextTips(activeView, clientTab)
   const currentTip = contextTips[tipIndex % contextTips.length]
 
@@ -4614,53 +4610,47 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
     return () => clearTimeout(timeout)
   }, [])
 
-  if (dismissed) return null
-
   return (
     <div className={`iq-buddy iq-buddy--${anim}`}>
-      {showBubble && (
-        <div className="iq-buddy-bubble">
-          <button
-            className="iq-buddy-dismiss"
-            type="button"
-            aria-label="Dismiss tip"
-            onClick={(e) => { e.stopPropagation(); setShowBubble(false) }}
-          >
-            ×
-          </button>
-          <p key={`${activeView}-${clientTab}-${tipIndex}`} className="iq-buddy-tip">{currentTip}</p>
-          <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
-            Ask IQ
-          </button>
-        </div>
-      )}
-      <button
-        className="iq-buddy-avatar"
-        type="button"
-        aria-label="Open IQ AI assistant"
-        onClick={() => {
-          if (!showBubble) {
-            setShowBubble(true)
-            setAnim('wave')
-            setTimeout(() => setAnim('idle'), 800)
-          } else {
-            onOpen()
-          }
-        }}
-        onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
-      >
-        <div className="iq-buddy-glow" />
-        <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
-      </button>
-      <button
-        className="iq-buddy-hide"
-        type="button"
-        aria-label="Hide IQ buddy"
-        onClick={() => setDismissed(true)}
-        title="Hide for this session"
-      >
-        ×
-      </button>
+      <div className="iq-buddy-row">
+        {/* Mascot on the left */}
+        <button
+          className="iq-buddy-avatar"
+          type="button"
+          aria-label="Open IQ AI assistant"
+          onClick={() => {
+            if (!showBubble) {
+              setShowBubble(true)
+              setAnim('wave')
+              setTimeout(() => setAnim('idle'), 800)
+            } else {
+              onOpen()
+            }
+          }}
+          onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
+        >
+          <div className="iq-buddy-glow" />
+          <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
+        </button>
+
+        {/* Bubble to the right of mascot */}
+        {showBubble && (
+          <div className="iq-buddy-bubble">
+            <button
+              className="iq-buddy-dismiss"
+              type="button"
+              aria-label="Dismiss tip"
+              onClick={(e) => { e.stopPropagation(); setShowBubble(false) }}
+            >
+              ×
+            </button>
+            <p key={`${activeView}-${clientTab}-${tipIndex}`} className="iq-buddy-tip">{currentTip}</p>
+            <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
+              Ask IQ
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
