@@ -3136,43 +3136,44 @@ function RenewalCenter({
             <span>{allSelected ? 'Deselect all' : 'Select all'}</span>
           </label>
           <div className="renewal-col-labels">
-            <span>Client / Policy</span>
-            <span>Renewal Date</span>
-            <span>Premiums</span>
-            <span>Billing</span>
-            <span>AI Recommendation</span>
-            <span>Actions</span>
+            <span className="rcl-client">Client / Policy</span>
+            <span className="rcl-date">Exp. Date</span>
+            <span className="rcl-premium">Current / Renewal</span>
+            <span className="rcl-billing">Billing</span>
+            <span className="rcl-ai">AI Recommendation</span>
+            <span className="rcl-actions">Actions</span>
           </div>
-          <span className="renewal-table-count">{renewalPolicies.length}</span>
         </div>
         <div className="renewal-rows">
           {renewalPolicies.map((item) => {
             const { policy, client, daysUntil, isEscrow, isAutopay } = item
             const isPastDue = daysUntil < 0
             const isWithin7 = daysUntil >= 0 && daysUntil <= 7
-            const isGreen = daysUntil > 7
             const isNeutral = isEscrow || isAutopay
-            const rowClass = isNeutral ? 'renewal-row--neutral' : isPastDue ? 'renewal-row--red' : isWithin7 ? 'renewal-row--orange' : isGreen ? 'renewal-row--green' : ''
+            const rowClass = isNeutral ? 'renewal-row--neutral' : isPastDue ? 'renewal-row--red' : isWithin7 ? 'renewal-row--orange' : 'renewal-row--green'
             const ai = getRenewalAiSuggestion(daysUntil, item.billingMethod, item.paymentPlan)
             const isSelected = selectedIds.has(policy.id)
             const renewalPremium = (policy as Policy & { renewalPremium?: number }).renewalPremium
             const editVal = renewalPremiumEdits[policy.id]
             const isFinanced = item.paymentPlan.toLowerCase().includes('financ') || item.billingMethod.toLowerCase().includes('financ')
+            const billingDisplay = item.billingMethod || item.paymentPlan || policy.billingType || '—'
             return (
               <div className={`renewal-row ${rowClass} ${isSelected ? 'renewal-row--selected' : ''}`} key={policy.id}>
+                {/* Checkbox */}
                 <label className="renewal-row-check">
                   <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(policy.id)} />
                 </label>
-                {/* Left color bar via CSS */}
-                <div className="renewal-row-main">
-                  <div className="renewal-row-identity">
-                    <button className="renewal-client-link" type="button" onClick={() => onOpenClient(policy.clientId)}>
-                      {client?.name ?? 'Unknown'}
-                    </button>
+
+                {/* Col 1: Client / Policy */}
+                <div className="rc-col rc-col-client">
+                  <button className="renewal-client-link" type="button" onClick={() => onOpenClient(policy.clientId)}>
+                    {client?.name ?? 'Unknown'}
+                  </button>
+                  <div className="rc-policy-line">
                     <span className="renewal-policy-type">{policy.policyType}</span>
                     <span className="renewal-carrier">{policy.carrier}</span>
                   </div>
-                  <div className="renewal-row-meta">
+                  <div className="renewal-row-tags">
                     {isEscrow && <span className="renewal-tag renewal-tag--escrow">Escrow</span>}
                     {isAutopay && <span className="renewal-tag renewal-tag--autopay">Auto-pay</span>}
                     {isFinanced && <span className="renewal-tag renewal-tag--financed">Financed</span>}
@@ -3180,9 +3181,10 @@ function RenewalCenter({
                   </div>
                 </div>
 
-                <div className="renewal-date-col">
+                {/* Col 2: Date + urgency */}
+                <div className="rc-col rc-col-date">
                   <span className="renewal-date-chip">
-                    <CalendarClock size={13} />
+                    <CalendarClock size={12} />
                     {formatDate(policy.expirationDate)}
                   </span>
                   <span className={`renewal-days-badge ${isPastDue ? 'days-badge--red' : isWithin7 ? 'days-badge--orange' : 'days-badge--green'}`}>
@@ -3190,12 +3192,13 @@ function RenewalCenter({
                   </span>
                 </div>
 
-                <div className="renewal-premium-col">
-                  <div className="renewal-premium-current">
+                {/* Col 3: Premiums */}
+                <div className="rc-col rc-col-premium">
+                  <div className="rc-premium-row">
                     <span className="premium-label">Current</span>
-                    <strong>{currency.format(policy.premium)}</strong>
+                    <strong className="rc-premium-val">{currency.format(policy.premium)}</strong>
                   </div>
-                  <div className="renewal-premium-new">
+                  <div className="rc-premium-row">
                     <span className="premium-label">Renewal</span>
                     {editVal !== undefined ? (
                       <div className="renewal-premium-input-row">
@@ -3220,13 +3223,22 @@ function RenewalCenter({
                       </button>
                     ) : (
                       <button className="renewal-premium-add" type="button" onClick={() => setRenewalPremiumEdits({ ...renewalPremiumEdits, [policy.id]: '' })}>
-                        + Enter renewal premium
+                        + Enter premium
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="renewal-row-ai">
+                {/* Col 4: Billing */}
+                <div className="rc-col rc-col-billing">
+                  <span className="rc-billing-method">{billingDisplay}</span>
+                  {item.paymentPlan && item.paymentPlan !== billingDisplay && (
+                    <span className="rc-billing-plan">{item.paymentPlan}</span>
+                  )}
+                </div>
+
+                {/* Col 5: AI */}
+                <div className="rc-col rc-col-ai">
                   <span className={`ai-tag ${ai.color}`}>
                     <Sparkles size={11} />
                     {ai.label}
@@ -3234,12 +3246,13 @@ function RenewalCenter({
                   <span className="ai-tip">{ai.tip}</span>
                 </div>
 
-                <div className="renewal-row-actions">
-                  <button className="utility-action renewal-quick-email" type="button" title="Send email reminder"
+                {/* Col 6: Actions */}
+                <div className="rc-col rc-col-actions">
+                  <button className="utility-action renewal-quick-action" type="button" title="Send email reminder"
                     onClick={() => { if (!selectedIds.has(policy.id)) toggleSelection(policy.id); setRenewalOutreachModal('email') }}>
                     <Mail size={14} />
                   </button>
-                  <button className="utility-action renewal-quick-email" type="button" title="Send text"
+                  <button className="utility-action renewal-quick-action" type="button" title="Send text"
                     onClick={() => { if (!selectedIds.has(policy.id)) toggleSelection(policy.id); setRenewalOutreachModal('text') }}>
                     <MessageSquare size={14} />
                   </button>
