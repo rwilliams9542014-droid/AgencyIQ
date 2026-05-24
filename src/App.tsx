@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Menu, Moon, Palette, Search, SlidersHorizontal, Settings, Sun, UsersRound, X } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
@@ -43,6 +43,16 @@ type ClientTab =
   | 'Communications'
   | 'Activity'
 type PolicyFilter = 'All' | 'Active' | 'Renewal Review' | 'Expired' | 'Cancelled' | 'Rewritten' | 'Prior History'
+
+type ModalType =
+  | 'addClient'
+  | 'addPolicy'
+  | 'addTask'
+  | 'addNote'
+  | 'addLead'
+  | null
+
+type Toast = { id: number; message: string }
 
 type PaletteId =
   | 'coastal'
@@ -362,6 +372,9 @@ function App() {
   const [policyFilter, setPolicyFilter] = useState<PolicyFilter>('All')
   const [hiddenDashboardWidgets, setHiddenDashboardWidgets] = useState<DashboardWidgetId[]>([])
   const [selectedClientId, setSelectedClientId] = useState(() => dataset.clients[0]?.id ?? '')
+  const [modal, setModal] = useState<ModalType>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const toastCounter = useRef(0)
 
   useEffect(() => {
     localStorage.setItem('agencyiq-palette', palette)
@@ -613,6 +626,168 @@ function App() {
     }))
   }
 
+  const showToast = (message: string) => {
+    const id = ++toastCounter.current
+    setToasts((prev) => [...prev, { id, message }])
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
+  }
+
+  const addClient = (data: {
+    name: string
+    primaryContact: string
+    phone: string
+    email: string
+    lineOfBusiness: string
+    accountStatus: string
+    mailingAddress: string
+    assignedProducerId: string
+    assignedCsrId: string
+  }) => {
+    const newClient = {
+      id: createRecordId('client'),
+      accountId: dataset.agency.id,
+      ownerUserId: dataset.currentUser.id,
+      name: data.name,
+      primaryContact: data.primaryContact,
+      phone: data.phone,
+      email: data.email,
+      lineOfBusiness: data.lineOfBusiness as 'Commercial' | 'Personal lines' | 'Life & health',
+      accountStatus: data.accountStatus as 'Active' | 'Inactive' | 'Prospect',
+      status: 'Client' as const,
+      mailingAddress: data.mailingAddress || undefined,
+      assignedProducerId: data.assignedProducerId || undefined,
+      assignedCsrId: data.assignedCsrId || undefined,
+      policyCount: 0,
+      annualRevenue: 0,
+      health: 'Strong' as const,
+      clientSince: new Date().toISOString().slice(0, 10),
+    }
+    setDataset((current) => ({ ...current, clients: [newClient, ...current.clients] }))
+    setModal(null)
+    setSelectedClientId(newClient.id)
+    setClientTab('Overview')
+    setActiveView('profile')
+    showToast(`Client folder created for ${newClient.name}`)
+  }
+
+  const addPolicy = (data: {
+    policyType: string
+    carrier: string
+    policyNumber: string
+    premium: string
+    commissionRate: string
+    effectiveDate: string
+    expirationDate: string
+    billingType: string
+    lineOfBusiness: string
+  }) => {
+    if (!selectedClient) return
+    const newPolicy: Policy = {
+      id: createRecordId('policy'),
+      accountId: dataset.agency.id,
+      clientId: selectedClient.id,
+      policyType: data.policyType,
+      carrier: data.carrier,
+      policyNumber: data.policyNumber || undefined,
+      premium: parseFloat(data.premium) || 0,
+      commissionRate: parseFloat(data.commissionRate) || 0,
+      effectiveDate: data.effectiveDate || undefined,
+      expirationDate: data.expirationDate,
+      billingType: data.billingType as 'Direct Bill' | 'Agency Bill' | 'Financed' | undefined,
+      lineOfBusiness: data.lineOfBusiness as 'Commercial' | 'Personal lines' | 'Life & health' | undefined,
+      status: 'Active',
+      producerUserId: selectedClient.assignedProducerId,
+      csrUserId: selectedClient.assignedCsrId,
+    }
+    setDataset((current) => ({
+      ...current,
+      policies: [newPolicy, ...current.policies],
+      notes: [
+        {
+          id: createRecordId('note'),
+          accountId: current.agency.id,
+          clientId: selectedClient.id,
+          createdByUserId: current.currentUser.id,
+          createdAt: new Date().toISOString(),
+          type: 'General',
+          pinned: false,
+          body: `New policy added: ${newPolicy.policyType} with ${newPolicy.carrier}. Policy #${newPolicy.policyNumber ?? 'TBD'}.`,
+        },
+        ...current.notes,
+      ],
+    }))
+    setModal(null)
+    setClientTab('Policies')
+    showToast(`Policy added: ${newPolicy.policyType}`)
+  }
+
+  const addTask = (data: {
+    title: string
+    description: string
+    dueDate: string
+    priority: string
+    assignedToUserId: string
+    isFollowUp: boolean
+    isPaymentReminder: boolean
+  }) => {
+    if (!selectedClient) return
+    const newTask = {
+      id: createRecordId('task'),
+      accountId: dataset.agency.id,
+      clientId: selectedClient.id,
+      assignedToUserId: data.assignedToUserId || dataset.currentUser.id,
+      createdByUserId: dataset.currentUser.id,
+      title: data.title,
+      description: data.description || undefined,
+      dueLabel: data.dueDate ? formatDate(data.dueDate) : 'No due date',
+      dueDate: data.dueDate || undefined,
+      priority: data.priority as 'Low' | 'Normal' | 'Medium' | 'High' | 'Urgent',
+      completed: false,
+      status: 'Open' as const,
+    }
+    setDataset((current) => ({ ...current, tasks: [newTask, ...current.tasks] }))
+    setModal(null)
+    setClientTab('Tasks')
+    showToast(data.isPaymentReminder ? 'Payment reminder added' : data.isFollowUp ? 'Follow-up created' : 'Task added')
+  }
+
+  const addNote = (data: { body: string; type: string; pinned: boolean }) => {
+    if (!selectedClient) return
+    const newNote = {
+      id: createRecordId('note'),
+      accountId: dataset.agency.id,
+      clientId: selectedClient.id,
+      createdByUserId: dataset.currentUser.id,
+      createdAt: new Date().toISOString(),
+      type: data.type as 'General' | 'Renewal' | 'Payment' | 'Claim' | 'Underwriting' | 'Follow-up',
+      pinned: data.pinned,
+      body: data.body,
+    }
+    setDataset((current) => ({ ...current, notes: [newNote, ...current.notes] }))
+    setModal(null)
+    setClientTab('Notes & History')
+    showToast('Note added to client file')
+  }
+
+  const addLead = (data: {
+    clientName: string
+    estimatedPremium: string
+    stage: string
+    ownerUserId: string
+  }) => {
+    const newLead = {
+      id: createRecordId('opportunity'),
+      accountId: dataset.agency.id,
+      ownerUserId: data.ownerUserId || dataset.currentUser.id,
+      clientName: data.clientName,
+      stage: data.stage as 'New lead' | 'Discovery' | 'Quoting' | 'Proposal' | 'Bound',
+      estimatedPremium: parseFloat(data.estimatedPremium) || 0,
+    }
+    setDataset((current) => ({ ...current, opportunities: [newLead, ...current.opportunities] }))
+    setModal(null)
+    showToast(`New lead added: ${newLead.clientName}`)
+  }
+
   return (
     <div className="app-shell" data-mode={mode} data-palette={palette}>
       <aside className="sidebar">
@@ -785,7 +960,7 @@ function App() {
                   Website quote requests, producer referrals, walk-ins, and prospects before they become client folders.
                 </p>
               </div>
-              <button className="primary-action" type="button">
+              <button className="primary-action" type="button" onClick={() => setModal('addLead')}>
                 Add New Lead
               </button>
             </div>
@@ -900,7 +1075,7 @@ function App() {
                   {filteredClients.length} client {filteredClients.length === 1 ? 'folder' : 'folders'} on file
                 </p>
               </div>
-              <button className="primary-action" type="button">
+              <button className="primary-action" type="button" onClick={() => setModal('addClient')}>
                 + New Client
               </button>
             </div>
@@ -1063,17 +1238,17 @@ function App() {
 
               <div className="open-folder-actions">
                 <div className="action-group primary-action-group">
-                  <button className="primary-action" type="button">Add New Policy</button>
+                  <button className="primary-action" type="button" onClick={() => setModal('addPolicy')}>Add New Policy</button>
                 </div>
                 <div className="action-group secondary-action-group">
-                  <button className="secondary-action" type="button">Add Task</button>
-                  <button className="secondary-action" type="button">Create Follow-Up</button>
-                  <button className="secondary-action" type="button">Add Note</button>
+                  <button className="secondary-action" type="button" onClick={() => setModal('addTask')}>Add Task</button>
+                  <button className="secondary-action" type="button" onClick={() => setModal('addTask')}>Create Follow-Up</button>
+                  <button className="secondary-action" type="button" onClick={() => setModal('addNote')}>Add Note</button>
                 </div>
                 <div className="action-group utility-action-group">
-                  <button className="utility-action" type="button">Send Email</button>
-                  <button className="utility-action" type="button">Send Text</button>
-                  <button className="utility-action" type="button">Add Payment Reminder</button>
+                  <button className="utility-action" type="button" onClick={() => { showToast(`Email drafted to ${selectedClient?.email ?? selectedClient?.primaryContact ?? 'client'}`) }}>Send Email</button>
+                  <button className="utility-action" type="button" onClick={() => { showToast(`Text queued to ${selectedClient?.phone ?? 'client'}`) }}>Send Text</button>
+                  <button className="utility-action" type="button" onClick={() => setModal('addTask')}>Add Payment Reminder</button>
                 </div>
               </div>
             </div>
@@ -1276,7 +1451,7 @@ function App() {
 
               {clientTab === 'Notes & History' && (
                 <div className="mini-list">
-                  <button className="primary-action inline-action" type="button">Add Note</button>
+                  <button className="primary-action inline-action" type="button" onClick={() => setModal('addNote')}>Add Note</button>
                   {clientNotes.map((note) => (
                     <div className={note.pinned ? 'note-row pinned-note' : 'note-row'} key={note.id}>
                       <strong>{note.type ?? 'General'} note {note.pinned ? '- Pinned' : ''}</strong>
@@ -1290,9 +1465,9 @@ function App() {
               {clientTab === 'Tasks' && (
                 <div className="mini-list">
                   <div className="quick-actions">
-                    <button className="primary-action inline-action" type="button">Add Task</button>
-                    <button className="secondary-action inline-action" type="button">Create Follow-Up</button>
-                    <button className="secondary-action inline-action" type="button">Add Payment Reminder</button>
+                    <button className="primary-action inline-action" type="button" onClick={() => setModal('addTask')}>Add Task</button>
+                    <button className="secondary-action inline-action" type="button" onClick={() => setModal('addTask')}>Create Follow-Up</button>
+                    <button className="secondary-action inline-action" type="button" onClick={() => setModal('addTask')}>Add Payment Reminder</button>
                   </div>
                   {clientTasks.map((task) => (
                     <div className="mini-row" key={task.id}>
@@ -1408,7 +1583,7 @@ function App() {
                 <h2>Recent Client Activity</h2>
                 <p>Latest notes, policy updates, and service touches.</p>
               </div>
-              <button className="text-button" type="button">
+              <button className="text-button" type="button" onClick={() => setActiveView('clients')}>
                 View all
                 <ChevronRight size={16} aria-hidden="true" />
               </button>
@@ -1472,7 +1647,7 @@ function App() {
                 <h2>Renewals & Expiring Policies</h2>
                 <p>Prioritize accounts before premium is at risk.</p>
               </div>
-              <button className="secondary-action" type="button">
+              <button className="secondary-action" type="button" onClick={() => { setActiveView('clients'); setClientFilter('Renewal Due') }}>
                 <CalendarClock size={17} aria-hidden="true" />
                 Renewal calendar
               </button>
@@ -1655,7 +1830,402 @@ function App() {
           </div>
         </aside>
       )}
+
+      {/* ─── Add Client Modal ─────────────────────────────────── */}
+      {modal === 'addClient' && (
+        <AddClientModal
+          users={dataset.users}
+          onClose={() => setModal(null)}
+          onSave={addClient}
+        />
+      )}
+
+      {/* ─── Add Policy Modal ─────────────────────────────────── */}
+      {modal === 'addPolicy' && selectedClient && (
+        <AddPolicyModal
+          clientName={selectedClient.name}
+          onClose={() => setModal(null)}
+          onSave={addPolicy}
+        />
+      )}
+
+      {/* ─── Add Task Modal ───────────────────────────────────── */}
+      {modal === 'addTask' && selectedClient && (
+        <AddTaskModal
+          clientName={selectedClient.name}
+          users={dataset.users}
+          currentUserId={dataset.currentUser.id}
+          onClose={() => setModal(null)}
+          onSave={addTask}
+        />
+      )}
+
+      {/* ─── Add Note Modal ───────────────────────────────────── */}
+      {modal === 'addNote' && selectedClient && (
+        <AddNoteModal
+          clientName={selectedClient.name}
+          onClose={() => setModal(null)}
+          onSave={addNote}
+        />
+      )}
+
+      {/* ─── Add Lead Modal ───────────────────────────────────── */}
+      {modal === 'addLead' && (
+        <AddLeadModal
+          users={dataset.users}
+          currentUserId={dataset.currentUser.id}
+          onClose={() => setModal(null)}
+          onSave={addLead}
+        />
+      )}
+
+      {/* ─── Toast Notifications ──────────────────────────────── */}
+      {toasts.length > 0 && (
+        <div className="toast-stack" aria-live="polite">
+          {toasts.map((toast) => (
+            <div className="toast" key={toast.id}>
+              <CheckCircle2 size={16} aria-hidden="true" />
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
+  )
+}
+
+/* ─── Modal Components ──────────────────────────────────────────── */
+
+type UserOption = { id: string; name: string }
+
+function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="icon-button modal-close" type="button" aria-label="Close" onClick={onClose}>
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function AddClientModal({ users, onClose, onSave }: {
+  users: UserOption[]
+  onClose: () => void
+  onSave: (data: { name: string; primaryContact: string; phone: string; email: string; lineOfBusiness: string; accountStatus: string; mailingAddress: string; assignedProducerId: string; assignedCsrId: string }) => void
+}) {
+  const [form, setForm] = useState({ name: '', primaryContact: '', phone: '', email: '', lineOfBusiness: 'Personal lines', accountStatus: 'Active', mailingAddress: '', assignedProducerId: '', assignedCsrId: '' })
+  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title="New Client Folder" onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field modal-field--full">
+          <span>Client / Business Name *</span>
+          <input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Acme Corp or Jane Smith" autoFocus />
+        </label>
+        <label className="modal-field">
+          <span>Primary Contact</span>
+          <input value={form.primaryContact} onChange={(e) => set('primaryContact', e.target.value)} placeholder="Contact person's name" />
+        </label>
+        <label className="modal-field">
+          <span>Phone</span>
+          <input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="(555) 000-0000" />
+        </label>
+        <label className="modal-field">
+          <span>Email</span>
+          <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="client@email.com" />
+        </label>
+        <label className="modal-field">
+          <span>Line of Business</span>
+          <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
+            <option value="Personal lines">Personal Lines</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Life & health">Life & Health</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Account Status</span>
+          <select value={form.accountStatus} onChange={(e) => set('accountStatus', e.target.value)}>
+            <option value="Active">Active</option>
+            <option value="Prospect">Prospect</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Mailing Address</span>
+          <input value={form.mailingAddress} onChange={(e) => set('mailingAddress', e.target.value)} placeholder="123 Main St, City, State ZIP" />
+        </label>
+        <label className="modal-field">
+          <span>Assigned Producer</span>
+          <select value={form.assignedProducerId} onChange={(e) => set('assignedProducerId', e.target.value)}>
+            <option value="">Unassigned</option>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Assigned CSR</span>
+          <select value={form.assignedCsrId} onChange={(e) => set('assignedCsrId', e.target.value)}>
+            <option value="">Unassigned</option>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!form.name.trim()}
+          onClick={() => onSave(form)}
+        >
+          Create Client Folder
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function AddPolicyModal({ clientName, onClose, onSave }: {
+  clientName: string
+  onClose: () => void
+  onSave: (data: { policyType: string; carrier: string; policyNumber: string; premium: string; commissionRate: string; effectiveDate: string; expirationDate: string; billingType: string; lineOfBusiness: string }) => void
+}) {
+  const [form, setForm] = useState({ policyType: '', carrier: '', policyNumber: '', premium: '', commissionRate: '', effectiveDate: '', expirationDate: '', billingType: 'Direct Bill', lineOfBusiness: 'Personal lines' })
+  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title={`Add Policy — ${clientName}`} onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field">
+          <span>Policy Type *</span>
+          <input value={form.policyType} onChange={(e) => set('policyType', e.target.value)} placeholder="e.g. Auto, Homeowners, BOP" autoFocus />
+        </label>
+        <label className="modal-field">
+          <span>Carrier *</span>
+          <input value={form.carrier} onChange={(e) => set('carrier', e.target.value)} placeholder="Insurance company name" />
+        </label>
+        <label className="modal-field">
+          <span>Policy Number</span>
+          <input value={form.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} placeholder="Policy # from carrier" />
+        </label>
+        <label className="modal-field">
+          <span>Annual Premium ($)</span>
+          <input type="number" min="0" value={form.premium} onChange={(e) => set('premium', e.target.value)} placeholder="0.00" />
+        </label>
+        <label className="modal-field">
+          <span>Commission Rate (%)</span>
+          <input type="number" min="0" max="100" value={form.commissionRate} onChange={(e) => set('commissionRate', e.target.value)} placeholder="e.g. 12" />
+        </label>
+        <label className="modal-field">
+          <span>Line of Business</span>
+          <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
+            <option value="Personal lines">Personal Lines</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Life & health">Life & Health</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Effective Date</span>
+          <input type="date" value={form.effectiveDate} onChange={(e) => set('effectiveDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Expiration Date *</span>
+          <input type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} />
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Billing Type</span>
+          <select value={form.billingType} onChange={(e) => set('billingType', e.target.value)}>
+            <option value="Direct Bill">Direct Bill</option>
+            <option value="Agency Bill">Agency Bill</option>
+            <option value="Financed">Financed</option>
+          </select>
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!form.policyType.trim() || !form.carrier.trim() || !form.expirationDate}
+          onClick={() => onSave(form)}
+        >
+          Add Policy
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function AddTaskModal({ clientName, users, currentUserId, onClose, onSave }: {
+  clientName: string
+  users: UserOption[]
+  currentUserId: string
+  onClose: () => void
+  onSave: (data: { title: string; description: string; dueDate: string; priority: string; assignedToUserId: string; isFollowUp: boolean; isPaymentReminder: boolean }) => void
+}) {
+  const [form, setForm] = useState({ title: '', description: '', dueDate: '', priority: 'Normal', assignedToUserId: currentUserId, isFollowUp: false, isPaymentReminder: false })
+  const set = (key: string, val: string | boolean) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title={`Add Task — ${clientName}`} onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field modal-field--full">
+          <span>Task Title *</span>
+          <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="What needs to be done?" autoFocus />
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Description / Notes</span>
+          <input value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Additional context (optional)" />
+        </label>
+        <label className="modal-field">
+          <span>Due Date</span>
+          <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Priority</span>
+          <select value={form.priority} onChange={(e) => set('priority', e.target.value)}>
+            <option value="Low">Low</option>
+            <option value="Normal">Normal</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Assign To</span>
+          <select value={form.assignedToUserId} onChange={(e) => set('assignedToUserId', e.target.value)}>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+        <div className="modal-checkbox-row">
+          <label className="modal-checkbox">
+            <input type="checkbox" checked={form.isFollowUp} onChange={(e) => set('isFollowUp', e.target.checked)} />
+            Mark as follow-up
+          </label>
+          <label className="modal-checkbox">
+            <input type="checkbox" checked={form.isPaymentReminder} onChange={(e) => set('isPaymentReminder', e.target.checked)} />
+            Payment reminder
+          </label>
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!form.title.trim()}
+          onClick={() => onSave(form)}
+        >
+          Save Task
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function AddNoteModal({ clientName, onClose, onSave }: {
+  clientName: string
+  onClose: () => void
+  onSave: (data: { body: string; type: string; pinned: boolean }) => void
+}) {
+  const [form, setForm] = useState({ body: '', type: 'General', pinned: false })
+  const set = (key: string, val: string | boolean) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title={`Add Note — ${clientName}`} onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field">
+          <span>Note Type</span>
+          <select value={form.type} onChange={(e) => set('type', e.target.value)}>
+            <option value="General">General</option>
+            <option value="Renewal">Renewal</option>
+            <option value="Payment">Payment</option>
+            <option value="Claim">Claim</option>
+            <option value="Underwriting">Underwriting</option>
+            <option value="Follow-up">Follow-up</option>
+          </select>
+        </label>
+        <label className="modal-field modal-checkbox">
+          <input type="checkbox" checked={form.pinned} onChange={(e) => set('pinned', e.target.checked)} />
+          Pin this note to the top of the file
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Note *</span>
+          <textarea
+            className="modal-textarea"
+            value={form.body}
+            onChange={(e) => set('body', e.target.value)}
+            placeholder="Enter your note about this client..."
+            rows={5}
+            autoFocus
+          />
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!form.body.trim()}
+          onClick={() => onSave(form)}
+        >
+          Save Note
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function AddLeadModal({ users, currentUserId, onClose, onSave }: {
+  users: UserOption[]
+  currentUserId: string
+  onClose: () => void
+  onSave: (data: { clientName: string; estimatedPremium: string; stage: string; ownerUserId: string }) => void
+}) {
+  const [form, setForm] = useState({ clientName: '', estimatedPremium: '', stage: 'New lead', ownerUserId: currentUserId })
+  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title="New Lead" onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field modal-field--full">
+          <span>Prospect Name *</span>
+          <input value={form.clientName} onChange={(e) => set('clientName', e.target.value)} placeholder="Name of the prospect or business" autoFocus />
+        </label>
+        <label className="modal-field">
+          <span>Estimated Premium ($)</span>
+          <input type="number" min="0" value={form.estimatedPremium} onChange={(e) => set('estimatedPremium', e.target.value)} placeholder="0.00" />
+        </label>
+        <label className="modal-field">
+          <span>Stage</span>
+          <select value={form.stage} onChange={(e) => set('stage', e.target.value)}>
+            <option value="New lead">New Lead</option>
+            <option value="Discovery">Discovery</option>
+            <option value="Quoting">Quoting</option>
+            <option value="Proposal">Proposal</option>
+            <option value="Bound">Bound</option>
+          </select>
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Assigned To</span>
+          <select value={form.ownerUserId} onChange={(e) => set('ownerUserId', e.target.value)}>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!form.clientName.trim()}
+          onClick={() => onSave(form)}
+        >
+          Add Lead
+        </button>
+      </div>
+    </ModalShell>
   )
 }
 
