@@ -47,12 +47,92 @@ type PolicyFilter = 'All' | 'Active' | 'Renewal Review' | 'Expired' | 'Cancelled
 type ModalType =
   | 'addClient'
   | 'addPolicy'
+  | 'editClient'
+  | 'editPolicy'
   | 'addTask'
   | 'addNote'
   | 'addLead'
+  | 'carrierPortal'
   | null
 
 type Toast = { id: number; message: string }
+
+type Notification = {
+  id: string
+  title: string
+  body: string
+  type: 'renewal' | 'task' | 'payment' | 'lead' | 'system'
+  read: boolean
+  createdAt: string
+}
+
+type CarrierPortalEntry = {
+  id: string
+  name: string
+  url: string
+  username: string
+  notes: string
+}
+
+const ISO_POLICY_TYPES = [
+  'Personal auto',
+  'Homeowners (HO-3)',
+  'Homeowners (HO-5)',
+  'DP-1 (dwelling fire)',
+  'DP-3 (dwelling fire)',
+  'HO-3 excluding wind',
+  'Umbrella – personal',
+  'General liability',
+  'Business owners policy (BOP)',
+  'Commercial property',
+  'Commercial auto',
+  'Workers compensation',
+  'Professional liability (E&O)',
+  'Commercial package policy (CPP)',
+  'Inland marine',
+  'Liquor liability',
+  'Motor truck cargo',
+  'Cyber liability',
+  'Directors & officers (D&O)',
+  'Employment practices liability (EPLI)',
+  'Umbrella – commercial',
+  'Auto fleet',
+  'Equipment floater',
+  'Contractors equipment',
+]
+
+const KNOWN_CARRIERS = [
+  'Travelers',
+  'Progressive',
+  'CNA',
+  'Chubb',
+  'Safeco',
+  'The Hartford',
+  'Nationwide',
+  'Liberty Mutual',
+  'Zurich',
+  'AmTrust',
+  'State Auto',
+  'Westfield',
+  'Employers',
+  'ICW Group',
+  'Berkley One',
+  'State Farm',
+  'Allstate',
+  'USAA',
+  'Farmers',
+  'Erie Insurance',
+  'Cincinnati Financial',
+  'Auto-Owners',
+  'Great West',
+  'Bristol West',
+  'Markel',
+  'Philadelphia Insurance',
+  'Hanover Insurance',
+  'Acuity',
+  'Sentry',
+  'EMPLOYERS Holdings',
+]
 
 type PaletteId =
   | 'coastal'
@@ -354,6 +434,37 @@ const navItems = [
   { label: 'Administration', icon: Settings },
 ]
 
+function buildNotifications(): Notification[] {
+  return [
+    { id: 'notif-1', title: 'Renewal due in 7 days', body: 'Northstar Logistics – Auto Fleet policy expires Jun 19.', type: 'renewal', read: false, createdAt: new Date().toISOString() },
+    { id: 'notif-2', title: 'Payment past due', body: 'Harbor View Dental – BOP monthly payment is overdue.', type: 'payment', read: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
+    { id: 'notif-3', title: 'New lead assigned', body: 'Blue Peak Roofing proposal is awaiting your review.', type: 'lead', read: false, createdAt: new Date(Date.now() - 7200000).toISOString() },
+    { id: 'notif-4', title: 'Task overdue', body: 'Collect driver list from Northstar Logistics was due yesterday.', type: 'task', read: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'notif-5', title: 'Renewal queue update', body: 'Cedar & Main Workers Comp is in client outreach stage.', type: 'renewal', read: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
+  ]
+}
+
+const AI_ANSWERS: Record<string, string> = {
+  default: 'This is a demo AI assistant. In the full version, questions about coverage, premiums, limits, deductibles, renewals, and billing will receive detailed plain-English explanations tailored to your client\'s specific policy. You can use this for renewal talking points, client education, and draft responses.',
+  premium: 'Premium increases are driven by several factors: claims history (loss runs), carrier rate changes in your state, increased replacement cost values, changes to the insured\'s operations or exposures, and market conditions. For personal lines, credit score, driving record, and claims history are primary drivers. For commercial, payroll, revenues, square footage, and fleet size all affect the premium calculation.',
+  coverage: 'A General Liability policy covers third-party bodily injury and property damage claims arising from your business operations. It does not cover employee injuries (that\'s Workers\' Comp), professional errors (that\'s E&O), or your own property. The key numbers to know are: per-occurrence limit (max per single claim), aggregate limit (max for the entire policy period), and products-completed operations limit.',
+  limit: 'Whether a limit is adequate depends on the client\'s exposure. For a small retail business, $1M/$2M GL is common. For contractors, $2M/$4M is often required by general contractors. The rule of thumb: the limit should exceed the worst realistic single claim scenario. If the client has high-value customers or works on large projects, always consider whether an umbrella is needed.',
+  draft: 'Here is a professional response template:\n\n"Thank you for reaching out about your recent premium change. Your policy renewed at $[AMOUNT] this year, reflecting [carrier name]\'s updated rates for [coverage type]. I\'d be happy to schedule a quick call to walk through the changes, review your current coverage levels, and explore whether any adjustments make sense. Please let me know a convenient time."',
+  deductible: 'A higher deductible lowers your annual premium but means you pay more out-of-pocket at claim time. For clients who rarely file claims and have cash reserves, a higher deductible is a smart savings strategy. For clients with tight cash flow, a lower deductible provides predictability. The break-even point is usually 3-5 years of premium savings equaling the deductible increase.',
+  renewal: 'Key renewal talking points: 1) Review any coverage gaps identified during the year. 2) Update values – replacement costs rise with inflation. 3) Check if operations or exposures changed (new vehicles, employees, locations). 4) Ask about any claims or incidents not yet reported. 5) Compare incumbent carrier terms against market alternatives. 6) Confirm billing method and payment plan preferences.',
+}
+
+function getAiAnswer(query: string): string {
+  const q = query.toLowerCase()
+  if (q.includes('premium') || q.includes('increase') || q.includes('rate')) return AI_ANSWERS.premium
+  if (q.includes('coverage') || q.includes('what does') || q.includes('plain english')) return AI_ANSWERS.coverage
+  if (q.includes('limit') || q.includes('too high') || q.includes('too low')) return AI_ANSWERS.limit
+  if (q.includes('draft') || q.includes('response') || q.includes('professional')) return AI_ANSWERS.draft
+  if (q.includes('deductible') || q.includes('tradeoff') || q.includes('compare')) return AI_ANSWERS.deductible
+  if (q.includes('renewal') || q.includes('talking point') || q.includes('summarize')) return AI_ANSWERS.renewal
+  return AI_ANSWERS.default
+}
+
 function App() {
   const [dataset, setDataset] = useState<CrmDataset>(() => loadDataset())
   const [palette, setPalette] = useState<PaletteId>(() => {
@@ -375,6 +486,29 @@ function App() {
   const [modal, setModal] = useState<ModalType>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastCounter = useRef(0)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>(() => buildNotifications())
+  const [dashboardWidgetOrder, setDashboardWidgetOrder] = useState<DashboardWidgetId[]>([
+    'communications', 'recentActivity', 'followUps', 'renewals', 'keyAccounts', 'ownerReports',
+  ])
+  const [dragWidgetId, setDragWidgetId] = useState<DashboardWidgetId | null>(null)
+  const [dragOverWidgetId, setDragOverWidgetId] = useState<DashboardWidgetId | null>(null)
+  const [customPolicyTypes, setCustomPolicyTypes] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('agencyiq-policy-types') ?? '[]') } catch { return [] }
+  })
+  const [customCarriers, setCustomCarriers] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('agencyiq-carriers') ?? '[]') } catch { return [] }
+  })
+  const [carrierPortals, setCarrierPortals] = useState<CarrierPortalEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem('agencyiq-carrier-portals') ?? '[]') } catch { return [] }
+  })
+  const [aiQuery, setAiQuery] = useState('')
+  const [aiAnswer, setAiAnswer] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
+  const [clientPage, setClientPage] = useState(0)
+  const CLIENT_PAGE_SIZE = 24
 
   useEffect(() => {
     localStorage.setItem('agencyiq-palette', palette)
@@ -387,6 +521,18 @@ function App() {
   useEffect(() => {
     saveDataset(dataset)
   }, [dataset])
+
+  useEffect(() => {
+    localStorage.setItem('agencyiq-policy-types', JSON.stringify(customPolicyTypes))
+  }, [customPolicyTypes])
+
+  useEffect(() => {
+    localStorage.setItem('agencyiq-carriers', JSON.stringify(customCarriers))
+  }, [customCarriers])
+
+  useEffect(() => {
+    localStorage.setItem('agencyiq-carrier-portals', JSON.stringify(carrierPortals))
+  }, [carrierPortals])
 
   const canSeeOwnerAnalytics = canViewOwnerAnalytics(dataset.currentUser)
   const ownerReports = useMemo(() => getOwnerReports(dataset), [dataset])
@@ -446,7 +592,6 @@ function App() {
       }
     })
   }, [dataset])
-  const accounts = dataset.clients.slice(0, 3)
   const xDatePolicies = dataset.policies
     .filter((policy) => {
       if (!['Expired', 'Non-Renewed'].includes(policy.status)) {
@@ -561,6 +706,9 @@ function App() {
     return matchesSearch && matchesFilter && Boolean(nextRenewal || client)
   })
 
+  const pagedClients = filteredClients.slice(clientPage * CLIENT_PAGE_SIZE, (clientPage + 1) * CLIENT_PAGE_SIZE)
+  const totalPages = Math.ceil(filteredClients.length / CLIENT_PAGE_SIZE)
+
   const updateRole = (role: UserRole) => {
     setDataset((current) => ({
       ...current,
@@ -624,6 +772,69 @@ function App() {
         ...current.notes,
       ],
     }))
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+  const markRead = (id: string) => setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n))
+
+  const reorderWidgets = (dragId: DashboardWidgetId, overId: DashboardWidgetId) => {
+    setDashboardWidgetOrder((order) => {
+      const from = order.indexOf(dragId)
+      const to = order.indexOf(overId)
+      if (from === -1 || to === -1 || from === to) return order
+      const next = [...order]
+      next.splice(from, 1)
+      next.splice(to, 0, dragId)
+      return next
+    })
+  }
+
+  const addCustomPolicyType = (type: string) => {
+    const trimmed = type.trim()
+    if (trimmed && !ISO_POLICY_TYPES.includes(trimmed) && !customPolicyTypes.includes(trimmed)) {
+      setCustomPolicyTypes((prev) => [...prev, trimmed])
+    }
+  }
+
+  const addCustomCarrier = (carrier: string) => {
+    const trimmed = carrier.trim()
+    if (trimmed && !KNOWN_CARRIERS.includes(trimmed) && !customCarriers.includes(trimmed)) {
+      setCustomCarriers((prev) => [...prev, trimmed])
+    }
+  }
+
+  const saveCarrierPortal = (entry: CarrierPortalEntry) => {
+    setCarrierPortals((prev) => {
+      const existing = prev.findIndex((p) => p.id === entry.id)
+      if (existing >= 0) {
+        const next = [...prev]
+        next[existing] = entry
+        return next
+      }
+      return [...prev, entry]
+    })
+    setModal(null)
+    showToast(`Carrier portal saved: ${entry.name}`)
+  }
+
+  const handleAiQuery = (query: string) => {
+    if (!query.trim()) return
+    setAiLoading(true)
+    setAiAnswer('')
+    setTimeout(() => {
+      setAiAnswer(getAiAnswer(query))
+      setAiLoading(false)
+    }, 700)
+  }
+
+  const switchUser = (userId: string) => {
+    const user = dataset.users.find((u) => u.id === userId)
+    if (!user) return
+    setDataset((current) => ({ ...current, currentUser: user }))
+    setUserMenuOpen(false)
+    showToast(`Switched to ${user.name}`)
   }
 
   const showToast = (message: string) => {
@@ -788,6 +999,118 @@ function App() {
     showToast(`New lead added: ${newLead.clientName}`)
   }
 
+  const completeTask = (taskId: string) => {
+    setDataset((current) => ({
+      ...current,
+      tasks: current.tasks.map((t) =>
+        t.id === taskId ? { ...t, completed: !t.completed, status: t.completed ? 'Open' : 'Completed' as const } : t
+      ),
+    }))
+  }
+
+  const updateClient = (data: {
+    name: string
+    dbaName: string
+    primaryContact: string
+    phone: string
+    alternatePhone: string
+    email: string
+    mailingAddress: string
+    physicalAddress: string
+    website: string
+    lineOfBusiness: string
+    accountStatus: string
+    preferredContactMethod: string
+    billingMethod: string
+    paymentPlan: string
+    notes: string
+    assignedProducerId: string
+    assignedCsrId: string
+  }) => {
+    if (!selectedClient) return
+    setDataset((current) => ({
+      ...current,
+      clients: current.clients.map((c) =>
+        c.id === selectedClient.id
+          ? {
+              ...c,
+              name: data.name,
+              dbaName: data.dbaName || undefined,
+              primaryContact: data.primaryContact,
+              phone: data.phone || undefined,
+              alternatePhone: data.alternatePhone || undefined,
+              email: data.email || undefined,
+              mailingAddress: data.mailingAddress || undefined,
+              physicalAddress: data.physicalAddress || undefined,
+              website: data.website || undefined,
+              lineOfBusiness: data.lineOfBusiness as 'Commercial' | 'Personal lines' | 'Life & health',
+              accountStatus: data.accountStatus as 'Active' | 'Inactive' | 'Prospect',
+              preferredContactMethod: (data.preferredContactMethod || undefined) as 'Phone' | 'Email' | 'Text' | 'Portal' | undefined,
+              billingMethod: (data.billingMethod || undefined) as 'Direct Bill' | 'Agency Bill' | 'Mortgagee/Escrow' | 'Premium Finance' | undefined,
+              paymentPlan: data.paymentPlan || undefined,
+              notes: data.notes || undefined,
+              assignedProducerId: data.assignedProducerId || undefined,
+              assignedCsrId: data.assignedCsrId || undefined,
+            }
+          : c
+      ),
+    }))
+    setModal(null)
+    showToast(`Client record updated for ${data.name}`)
+  }
+
+  const updatePolicy = (policyId: string, data: {
+    policyType: string
+    carrier: string
+    policyNumber: string
+    premium: string
+    commissionRate: string
+    effectiveDate: string
+    expirationDate: string
+    billingType: string
+    status: string
+    limits: string
+    notes: string
+  }) => {
+    setDataset((current) => ({
+      ...current,
+      policies: current.policies.map((p) =>
+        p.id === policyId
+          ? {
+              ...p,
+              policyType: data.policyType,
+              carrier: data.carrier,
+              policyNumber: data.policyNumber || undefined,
+              premium: parseFloat(data.premium) || p.premium,
+              commissionRate: parseFloat(data.commissionRate) || p.commissionRate,
+              effectiveDate: data.effectiveDate || p.effectiveDate,
+              expirationDate: data.expirationDate || p.expirationDate,
+              billingType: (data.billingType || undefined) as 'Direct Bill' | 'Agency Bill' | 'Financed' | undefined,
+              status: data.status as Policy['status'],
+              limits: data.limits || undefined,
+              notes: data.notes || undefined,
+            }
+          : p
+      ),
+    }))
+    setModal(null)
+    setEditingPolicyId(null)
+    showToast('Policy updated')
+  }
+
+  const keyAccounts = useMemo(() => {
+    return [...dataset.clients]
+      .map((client) => {
+        const premium = dataset.policies
+          .filter((p) => p.clientId === client.id)
+          .reduce((sum, p) => sum + p.premium, 0)
+        return { client, premium }
+      })
+      .sort((a, b) => b.premium - a.premium)
+      .slice(0, 5)
+      .map((item) => item.client)
+  }, [dataset.clients, dataset.policies])
+
   return (
     <div className="app-shell" data-mode={mode} data-palette={palette}>
       <aside className="sidebar">
@@ -941,13 +1264,89 @@ function App() {
               </div>
             )}
           </div>
-          <button className="icon-button" type="button" aria-label="Filter view">
+          <button className="icon-button" type="button" aria-label="Carrier portals" title="Carrier Portals" onClick={() => setModal('carrierPortal')}>
             <SlidersHorizontal size={19} aria-hidden="true" />
           </button>
-          <button className="icon-button" type="button" aria-label="Notifications">
-            <Bell size={19} aria-hidden="true" />
-          </button>
-          <div className="profile-chip">{dataset.currentUser.initials}</div>
+          <div className="notif-wrap">
+            <button
+              className={unreadCount > 0 ? 'icon-button notif-bell notif-bell--active' : 'icon-button notif-bell'}
+              type="button"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+              aria-expanded={notifOpen}
+              onClick={() => { setNotifOpen((v) => !v); setUserMenuOpen(false) }}
+            >
+              <Bell size={19} aria-hidden="true" />
+              {unreadCount > 0 && <span className="notif-badge" aria-hidden="true">{unreadCount}</span>}
+            </button>
+            {notifOpen && (
+              <div className="notif-panel">
+                <div className="notif-panel-header">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <button className="text-button" type="button" onClick={markAllRead}>Mark all read</button>
+                  )}
+                </div>
+                <div className="notif-list">
+                  {notifications.map((notif) => (
+                    <button
+                      className={notif.read ? 'notif-item notif-item--read' : 'notif-item'}
+                      type="button"
+                      key={notif.id}
+                      onClick={() => { markRead(notif.id); setNotifOpen(false) }}
+                    >
+                      <span className={`notif-dot notif-dot--${notif.type}`} aria-hidden="true" />
+                      <div className="notif-item-body">
+                        <strong>{notif.title}</strong>
+                        <span>{notif.body}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="user-menu-wrap">
+            <button
+              className="profile-chip"
+              type="button"
+              aria-label="User menu"
+              aria-expanded={userMenuOpen}
+              onClick={() => { setUserMenuOpen((v) => !v); setNotifOpen(false) }}
+            >
+              {dataset.currentUser.initials}
+            </button>
+            {userMenuOpen && (
+              <div className="user-menu-panel">
+                <div className="user-menu-header">
+                  <strong>{dataset.currentUser.name}</strong>
+                  <span>{dataset.currentUser.role}</span>
+                </div>
+                <div className="user-menu-section-label">Switch user</div>
+                {dataset.users.filter((u) => u.id !== dataset.currentUser.id).map((u) => (
+                  <button
+                    className="user-menu-item"
+                    type="button"
+                    key={u.id}
+                    onClick={() => switchUser(u.id)}
+                  >
+                    <span className="user-menu-avatar">{u.initials}</span>
+                    <div>
+                      <strong>{u.name}</strong>
+                      <span>{u.role}</span>
+                    </div>
+                  </button>
+                ))}
+                <div className="user-menu-divider" />
+                <button
+                  className="user-menu-item user-menu-signout"
+                  type="button"
+                  onClick={() => { setUserMenuOpen(false); showToast('Signed out (demo — page will reload)'); setTimeout(() => window.location.reload(), 1500) }}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         {activeView === 'leads' ? (
@@ -1087,7 +1486,7 @@ function App() {
                   <input
                     aria-label="Search clients"
                     value={clientSearch}
-                    onChange={(event) => setClientSearch(event.target.value)}
+                    onChange={(event) => { setClientSearch(event.target.value); setClientPage(0) }}
                     placeholder="Search by name, phone, email, policy number, carrier..."
                   />
                 </div>
@@ -1097,7 +1496,7 @@ function App() {
                       className={clientFilter === filter ? 'filter-tab active' : 'filter-tab'}
                       type="button"
                       key={filter}
-                      onClick={() => setClientFilter(filter)}
+                      onClick={() => { setClientFilter(filter); setClientPage(0) }}
                     >
                       {filter}
                     </button>
@@ -1106,7 +1505,7 @@ function App() {
               </div>
 
               <div className="folder-grid">
-                {filteredClients.map((client) => {
+                {pagedClients.map((client) => {
                   const policies = dataset.policies.filter((policy) => policy.clientId === client.id)
                   const activePolicies = policies.filter((p) => isActivePolicy(p.status))
                   const nextRenewal = policies
@@ -1168,6 +1567,29 @@ function App() {
                   </div>
                 )}
               </div>
+              {totalPages > 1 && (
+                <div className="folder-pagination">
+                  <button
+                    className="secondary-action"
+                    type="button"
+                    disabled={clientPage === 0}
+                    onClick={() => setClientPage((p) => p - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span className="pagination-info">
+                    Page {clientPage + 1} of {totalPages} &mdash; {filteredClients.length} folders
+                  </span>
+                  <button
+                    className="secondary-action"
+                    type="button"
+                    disabled={clientPage >= totalPages - 1}
+                    onClick={() => setClientPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         ) : activeView === 'profile' && selectedClient ? (
@@ -1239,6 +1661,7 @@ function App() {
               <div className="open-folder-actions">
                 <div className="action-group primary-action-group">
                   <button className="primary-action" type="button" onClick={() => setModal('addPolicy')}>Add New Policy</button>
+                  <button className="secondary-action" type="button" onClick={() => setModal('editClient')}>Edit Client</button>
                 </div>
                 <div className="action-group secondary-action-group">
                   <button className="secondary-action" type="button" onClick={() => setModal('addTask')}>Add Task</button>
@@ -1426,18 +1849,31 @@ function App() {
                               <div><span>Payment notes</span><strong>Receipts, agency bill tracking, and finance updates will live here.</strong></div>
                             </div>
                           </div>
-                          {isActivePolicy(policy.status) && (
+                          <div className="policy-action-row">
+                            {isActivePolicy(policy.status) && (
+                              <button
+                                className="primary-action inline-action"
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  renewPolicy(policy)
+                                }}
+                              >
+                                Renew Policy
+                              </button>
+                            )}
                             <button
-                              className="primary-action inline-action"
+                              className="secondary-action inline-action"
                               type="button"
                               onClick={(event) => {
                                 event.preventDefault()
-                                renewPolicy(policy)
+                                setEditingPolicyId(policy.id)
+                                setModal('editPolicy')
                               }}
                             >
-                              Renew Policy
+                              Edit Policy
                             </button>
-                          )}
+                          </div>
                           <p className="policy-note">{policy.notes ?? 'No policy notes.'}</p>
                         </div>
                       </details>
@@ -1470,14 +1906,24 @@ function App() {
                     <button className="secondary-action inline-action" type="button" onClick={() => setModal('addTask')}>Add Payment Reminder</button>
                   </div>
                   {clientTasks.map((task) => (
-                    <div className="mini-row" key={task.id}>
-                      <div>
-                        <strong>{task.title}</strong>
-                        <span>{task.description} - Due {task.dueDate ? formatDate(task.dueDate) : task.dueLabel}</span>
+                    <div className={`mini-row${task.completed ? ' task-completed' : ''}`} key={task.id}>
+                      <div className="task-row-content">
+                        <button
+                          className={`task-check-btn${task.completed ? ' task-check-btn--done' : ''}`}
+                          type="button"
+                          aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+                          onClick={() => completeTask(task.id)}
+                        >
+                          <CheckCircle2 size={18} aria-hidden="true" />
+                        </button>
+                        <div>
+                          <strong>{task.title}</strong>
+                          <span>{task.description} - Due {task.dueDate ? formatDate(task.dueDate) : task.dueLabel}</span>
+                        </div>
                       </div>
                       <div>
                         <small className={`priority ${task.priority.toLowerCase()}`}>{task.priority}</small>
-                        <small>{task.status ?? (task.completed ? 'Completed' : 'Open')}</small>
+                        <small>{task.completed ? 'Completed' : task.status ?? 'Open'}</small>
                         <small>{getUserName(dataset, task.assignedToUserId)}</small>
                       </div>
                     </div>
@@ -1541,24 +1987,39 @@ function App() {
         <section className="dashboard-customizer panel" aria-label="Dashboard widget settings">
           <div>
             <h2>Daily command center</h2>
-            <p>Quick-view widgets for the work that needs attention today.</p>
+            <p>Toggle widgets on/off or drag to reorder.</p>
           </div>
           <div className="widget-toggle-list">
-            {dashboardWidgets.map((widget) => (
-              <button
-                className={isWidgetVisible(widget.id) ? 'widget-toggle active' : 'widget-toggle'}
-                type="button"
-                key={widget.id}
-                onClick={() => toggleDashboardWidget(widget.id)}
-              >
-                {widget.label}
-              </button>
-            ))}
+            {dashboardWidgetOrder.map((widgetId) => {
+              const widget = dashboardWidgets.find((w) => w.id === widgetId)
+              if (!widget) return null
+              return (
+                <button
+                  className={[
+                    isWidgetVisible(widget.id) ? 'widget-toggle active' : 'widget-toggle',
+                    dragOverWidgetId === widget.id ? 'widget-toggle--drag-over' : '',
+                  ].filter(Boolean).join(' ')}
+                  type="button"
+                  key={widget.id}
+                  draggable
+                  onDragStart={() => setDragWidgetId(widget.id)}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverWidgetId(widget.id) }}
+                  onDragLeave={() => setDragOverWidgetId(null)}
+                  onDrop={() => { if (dragWidgetId && dragWidgetId !== widget.id) reorderWidgets(dragWidgetId, widget.id); setDragWidgetId(null); setDragOverWidgetId(null) }}
+                  onDragEnd={() => { setDragWidgetId(null); setDragOverWidgetId(null) }}
+                  onClick={() => toggleDashboardWidget(widget.id)}
+                >
+                  <span className="widget-drag-handle" aria-hidden="true">⠿</span>
+                  {widget.label}
+                </button>
+              )
+            })}
           </div>
         </section>
 
         <section className="content-grid">
-          {isWidgetVisible('communications') && (
+          {dashboardWidgetOrder.map((widgetId) => (<React.Fragment key={widgetId}>
+          {widgetId === 'communications' && isWidgetVisible('communications') && (
           <article className="panel widget-panel">
             <div className="panel-header">
               <div>
@@ -1576,7 +2037,7 @@ function App() {
           </article>
           )}
 
-          {isWidgetVisible('recentActivity') && (
+          {widgetId === 'recentActivity' && isWidgetVisible('recentActivity') && (
           <article className="panel pipeline-panel widget-panel">
             <div className="panel-header">
               <div>
@@ -1611,7 +2072,7 @@ function App() {
           </article>
           )}
 
-          {isWidgetVisible('followUps') && (
+          {widgetId === 'followUps' && isWidgetVisible('followUps') && (
           <article className="panel widget-panel">
             <div className="panel-header">
               <div>
@@ -1640,7 +2101,7 @@ function App() {
           </article>
           )}
 
-          {isWidgetVisible('renewals') && (
+          {widgetId === 'renewals' && isWidgetVisible('renewals') && (
           <article className="panel wide-panel widget-panel">
             <div className="panel-header">
               <div>
@@ -1683,7 +2144,7 @@ function App() {
           </article>
           )}
 
-          {isWidgetVisible('keyAccounts') && (
+          {widgetId === 'keyAccounts' && isWidgetVisible('keyAccounts') && (
           <article className="panel widget-panel">
             <div className="panel-header">
               <div>
@@ -1693,7 +2154,7 @@ function App() {
               <CircleDollarSign size={22} aria-hidden="true" />
             </div>
             <div className="key-account-folder-list">
-              {accounts.map((account) => {
+              {keyAccounts.map((account) => {
                 const accountPolicies = dataset.policies.filter((p) => p.clientId === account.id)
                 const activePols = accountPolicies.filter((p) => isActivePolicy(p.status))
                 const nextRen = accountPolicies
@@ -1733,7 +2194,7 @@ function App() {
           </article>
           )}
 
-          {canSeeOwnerAnalytics && isWidgetVisible('ownerReports') && (
+          {widgetId === 'ownerReports' && canSeeOwnerAnalytics && isWidgetVisible('ownerReports') && (
             <article className="panel wide-panel owner-reports-panel">
               <div className="panel-header">
                 <div>
@@ -1779,6 +2240,7 @@ function App() {
               </div>
             </article>
           )}
+          </React.Fragment>))}
         </section>
           </>
         )}
@@ -1798,34 +2260,76 @@ function App() {
               className="icon-button"
               type="button"
               aria-label="Close AI help"
-              onClick={() => setAiHelpOpen(false)}
+              onClick={() => { setAiHelpOpen(false); setAiAnswer(''); setAiQuery('') }}
             >
               <X size={18} aria-hidden="true" />
             </button>
           </div>
 
-          <div className="ai-prompt-box">
+          <form
+            className="ai-prompt-box"
+            onSubmit={(e) => { e.preventDefault(); handleAiQuery(aiQuery) }}
+          >
             <Search size={18} aria-hidden="true" />
             <input
               aria-label="Ask AgencyIQ AI"
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
               placeholder="Ask about coverage, premiums, limits, deductibles, renewals, or billing"
             />
-          </div>
+            {aiQuery && (
+              <button className="ai-send-btn" type="submit" aria-label="Submit question">
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            )}
+          </form>
 
-          <div className="ai-suggestion-grid">
-            <button type="button">Explain why a client&apos;s premium increased</button>
-            <button type="button">Explain what this coverage does in plain English</button>
-            <button type="button">Explain why a limit may be too high or too low</button>
-            <button type="button">Draft a professional response to a client question</button>
-            <button type="button">Compare deductible and premium tradeoffs</button>
-            <button type="button">Summarize renewal changes for the agent</button>
-          </div>
+          {!aiAnswer && !aiLoading && (
+            <div className="ai-suggestion-grid">
+              {[
+                'Explain why a client\'s premium increased',
+                'Explain what this coverage does in plain English',
+                'Explain why a limit may be too high or too low',
+                'Draft a professional response to a client question',
+                'Compare deductible and premium tradeoffs',
+                'Summarize renewal changes for the agent',
+              ].map((q) => (
+                <button
+                  type="button"
+                  key={q}
+                  onClick={() => { setAiQuery(q); handleAiQuery(q) }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {aiLoading && (
+            <div className="ai-loading">
+              <span className="ai-loading-dot" /><span className="ai-loading-dot" /><span className="ai-loading-dot" />
+              <span>Generating answer...</span>
+            </div>
+          )}
+
+          {aiAnswer && !aiLoading && (
+            <div className="ai-answer-panel">
+              <div className="ai-answer-header">
+                <Bot size={15} aria-hidden="true" />
+                <strong>Answer</strong>
+                <button className="text-button ai-clear-btn" type="button" onClick={() => { setAiAnswer(''); setAiQuery('') }}>
+                  Ask another
+                </button>
+              </div>
+              <p className="ai-answer-body">{aiAnswer}</p>
+            </div>
+          )}
 
           <div className="ai-guidance-panel">
             <strong>Designed for agent review</strong>
             <span>
-              Use this for suggested explanations, coverage education, renewal talking points, and
-              response drafts. Final answers should be reviewed by a licensed agent before sending.
+              Review all answers before sharing with clients. This assistant provides educational
+              talking points — final advice should come from a licensed agent.
             </span>
           </div>
         </aside>
@@ -1840,12 +2344,43 @@ function App() {
         />
       )}
 
+      {/* ─── Edit Client Modal ───────────────────────────────── */}
+      {modal === 'editClient' && selectedClient && (
+        <EditClientModal
+          client={selectedClient}
+          users={dataset.users}
+          onClose={() => setModal(null)}
+          onSave={updateClient}
+        />
+      )}
+
+      {/* ─── Edit Policy Modal ───────────────────────────────── */}
+      {modal === 'editPolicy' && editingPolicyId && (() => {
+        const pol = dataset.policies.find((p) => p.id === editingPolicyId)
+        if (!pol) return null
+        return (
+          <EditPolicyModal
+            policy={pol}
+            allPolicyTypes={[...ISO_POLICY_TYPES, ...customPolicyTypes]}
+            allCarriers={[...KNOWN_CARRIERS, ...customCarriers]}
+            onAddPolicyType={addCustomPolicyType}
+            onAddCarrier={addCustomCarrier}
+            onClose={() => { setModal(null); setEditingPolicyId(null) }}
+            onSave={(data) => updatePolicy(editingPolicyId, data)}
+          />
+        )
+      })()}
+
       {/* ─── Add Policy Modal ─────────────────────────────────── */}
       {modal === 'addPolicy' && selectedClient && (
         <AddPolicyModal
           clientName={selectedClient.name}
           onClose={() => setModal(null)}
           onSave={addPolicy}
+          allPolicyTypes={[...ISO_POLICY_TYPES, ...customPolicyTypes]}
+          allCarriers={[...KNOWN_CARRIERS, ...customCarriers]}
+          onAddPolicyType={addCustomPolicyType}
+          onAddCarrier={addCustomCarrier}
         />
       )}
 
@@ -1870,6 +2405,15 @@ function App() {
       )}
 
       {/* ─── Add Lead Modal ───────────────────────────────────── */}
+      {modal === 'carrierPortal' && (
+        <CarrierPortalModal
+          portals={carrierPortals}
+          onClose={() => setModal(null)}
+          onSave={saveCarrierPortal}
+          onDelete={(id) => { setCarrierPortals((prev) => prev.filter((p) => p.id !== id)); showToast('Carrier portal removed') }}
+        />
+      )}
+
       {modal === 'addLead' && (
         <AddLeadModal
           users={dataset.users}
@@ -1990,24 +2534,92 @@ function AddClientModal({ users, onClose, onSave }: {
   )
 }
 
-function AddPolicyModal({ clientName, onClose, onSave }: {
+function ComboInput({ label, value, onChange, options, onAddCustom, placeholder, required, autoFocus }: {
+  label: string
+  value: string
+  onChange: (val: string) => void
+  options: string[]
+  onAddCustom?: (val: string) => void
+  placeholder?: string
+  required?: boolean
+  autoFocus?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [inputVal, setInputVal] = useState(value)
+  const filtered = options.filter((o) => o.toLowerCase().includes(inputVal.toLowerCase()))
+  const isCustom = inputVal.trim() && !options.includes(inputVal.trim())
+  return (
+    <div className="modal-field combo-field" style={{ position: 'relative' }}>
+      <span>{label}{required ? ' *' : ''}</span>
+      <input
+        value={inputVal}
+        autoFocus={autoFocus}
+        placeholder={placeholder}
+        onChange={(e) => { setInputVal(e.target.value); onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 160)}
+        autoComplete="off"
+      />
+      {open && (filtered.length > 0 || isCustom) && (
+        <div className="combo-dropdown">
+          {filtered.slice(0, 12).map((opt) => (
+            <button
+              className="combo-option"
+              type="button"
+              key={opt}
+              onMouseDown={() => { onChange(opt); setInputVal(opt); setOpen(false) }}
+            >
+              {opt}
+            </button>
+          ))}
+          {isCustom && onAddCustom && (
+            <button
+              className="combo-option combo-option--add"
+              type="button"
+              onMouseDown={() => { onAddCustom(inputVal.trim()); onChange(inputVal.trim()); setOpen(false) }}
+            >
+              + Add &quot;{inputVal.trim()}&quot; to your list
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AddPolicyModal({ clientName, onClose, onSave, allPolicyTypes, allCarriers, onAddPolicyType, onAddCarrier }: {
   clientName: string
   onClose: () => void
   onSave: (data: { policyType: string; carrier: string; policyNumber: string; premium: string; commissionRate: string; effectiveDate: string; expirationDate: string; billingType: string; lineOfBusiness: string }) => void
+  allPolicyTypes: string[]
+  allCarriers: string[]
+  onAddPolicyType: (t: string) => void
+  onAddCarrier: (c: string) => void
 }) {
   const [form, setForm] = useState({ policyType: '', carrier: '', policyNumber: '', premium: '', commissionRate: '', effectiveDate: '', expirationDate: '', billingType: 'Direct Bill', lineOfBusiness: 'Personal lines' })
   const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
   return (
     <ModalShell title={`Add Policy — ${clientName}`} onClose={onClose}>
       <div className="modal-form">
-        <label className="modal-field">
-          <span>Policy Type *</span>
-          <input value={form.policyType} onChange={(e) => set('policyType', e.target.value)} placeholder="e.g. Auto, Homeowners, BOP" autoFocus />
-        </label>
-        <label className="modal-field">
-          <span>Carrier *</span>
-          <input value={form.carrier} onChange={(e) => set('carrier', e.target.value)} placeholder="Insurance company name" />
-        </label>
+        <ComboInput
+          label="Policy Type"
+          required
+          autoFocus
+          value={form.policyType}
+          onChange={(v) => set('policyType', v)}
+          options={allPolicyTypes}
+          onAddCustom={onAddPolicyType}
+          placeholder="Search or type policy type..."
+        />
+        <ComboInput
+          label="Carrier"
+          required
+          value={form.carrier}
+          onChange={(v) => set('carrier', v)}
+          options={allCarriers}
+          onAddCustom={onAddCarrier}
+          placeholder="Search or type carrier name..."
+        />
         <label className="modal-field">
           <span>Policy Number</span>
           <input value={form.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} placeholder="Policy # from carrier" />
@@ -2225,6 +2837,324 @@ function AddLeadModal({ users, currentUserId, onClose, onSave }: {
           Add Lead
         </button>
       </div>
+    </ModalShell>
+  )
+}
+
+function EditClientModal({ client, users, onClose, onSave }: {
+  client: import('./data/crmTypes').Client
+  users: UserOption[]
+  onClose: () => void
+  onSave: (data: {
+    name: string; dbaName: string; primaryContact: string; phone: string; alternatePhone: string;
+    email: string; mailingAddress: string; physicalAddress: string; website: string;
+    lineOfBusiness: string; accountStatus: string; preferredContactMethod: string;
+    billingMethod: string; paymentPlan: string; notes: string;
+    assignedProducerId: string; assignedCsrId: string;
+  }) => void
+}) {
+  const [form, setForm] = useState({
+    name: client.name,
+    dbaName: client.dbaName ?? '',
+    primaryContact: client.primaryContact,
+    phone: client.phone ?? '',
+    alternatePhone: client.alternatePhone ?? '',
+    email: client.email ?? '',
+    mailingAddress: client.mailingAddress ?? '',
+    physicalAddress: client.physicalAddress ?? '',
+    website: client.website ?? '',
+    lineOfBusiness: client.lineOfBusiness,
+    accountStatus: client.accountStatus ?? 'Active',
+    preferredContactMethod: client.preferredContactMethod ?? '',
+    billingMethod: client.billingMethod ?? '',
+    paymentPlan: client.paymentPlan ?? '',
+    notes: client.notes ?? '',
+    assignedProducerId: client.assignedProducerId ?? '',
+    assignedCsrId: client.assignedCsrId ?? '',
+  })
+  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title={`Edit Client — ${client.name}`} onClose={onClose}>
+      <div className="modal-form">
+        <label className="modal-field modal-field--full">
+          <span>Client / Business Name *</span>
+          <input value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus />
+        </label>
+        <label className="modal-field">
+          <span>DBA / Trade Name</span>
+          <input value={form.dbaName} onChange={(e) => set('dbaName', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Primary Contact</span>
+          <input value={form.primaryContact} onChange={(e) => set('primaryContact', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Phone</span>
+          <input value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Alternate Phone</span>
+          <input value={form.alternatePhone} onChange={(e) => set('alternatePhone', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Email</span>
+          <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Mailing Address</span>
+          <input value={form.mailingAddress} onChange={(e) => set('mailingAddress', e.target.value)} />
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Physical / Location Address</span>
+          <input value={form.physicalAddress} onChange={(e) => set('physicalAddress', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Website</span>
+          <input value={form.website} onChange={(e) => set('website', e.target.value)} placeholder="https://" />
+        </label>
+        <label className="modal-field">
+          <span>Line of Business</span>
+          <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
+            <option value="Personal lines">Personal Lines</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Life & health">Life &amp; Health</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Account Status</span>
+          <select value={form.accountStatus} onChange={(e) => set('accountStatus', e.target.value)}>
+            <option value="Active">Active</option>
+            <option value="Prospect">Prospect</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Preferred Contact</span>
+          <select value={form.preferredContactMethod} onChange={(e) => set('preferredContactMethod', e.target.value)}>
+            <option value="">Not set</option>
+            <option value="Phone">Phone</option>
+            <option value="Email">Email</option>
+            <option value="Text">Text</option>
+            <option value="Portal">Portal</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Billing Method</span>
+          <select value={form.billingMethod} onChange={(e) => set('billingMethod', e.target.value)}>
+            <option value="">Not set</option>
+            <option value="Direct Bill">Direct Bill</option>
+            <option value="Agency Bill">Agency Bill</option>
+            <option value="Mortgagee/Escrow">Mortgagee/Escrow</option>
+            <option value="Premium Finance">Premium Finance</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Payment Plan</span>
+          <input value={form.paymentPlan} onChange={(e) => set('paymentPlan', e.target.value)} placeholder="e.g. Monthly, Annual" />
+        </label>
+        <label className="modal-field">
+          <span>Producer</span>
+          <select value={form.assignedProducerId} onChange={(e) => set('assignedProducerId', e.target.value)}>
+            <option value="">Unassigned</option>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>CSR</span>
+          <select value={form.assignedCsrId} onChange={(e) => set('assignedCsrId', e.target.value)}>
+            <option value="">Unassigned</option>
+            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
+          </select>
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Client Notes</span>
+          <textarea className="modal-textarea" rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button className="primary-action" type="button" disabled={!form.name.trim()} onClick={() => onSave(form)}>Save Changes</button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function EditPolicyModal({ policy, allPolicyTypes, allCarriers, onAddPolicyType, onAddCarrier, onClose, onSave }: {
+  policy: import('./data/crmTypes').Policy
+  allPolicyTypes: string[]
+  allCarriers: string[]
+  onAddPolicyType: (t: string) => void
+  onAddCarrier: (c: string) => void
+  onClose: () => void
+  onSave: (data: {
+    policyType: string; carrier: string; policyNumber: string; premium: string;
+    commissionRate: string; effectiveDate: string; expirationDate: string;
+    billingType: string; status: string; limits: string; notes: string;
+  }) => void
+}) {
+  const [form, setForm] = useState({
+    policyType: policy.policyType,
+    carrier: policy.carrier,
+    policyNumber: policy.policyNumber ?? '',
+    premium: String(policy.premium),
+    commissionRate: String(policy.commissionRate ?? ''),
+    effectiveDate: policy.effectiveDate ?? '',
+    expirationDate: policy.expirationDate,
+    billingType: policy.billingType ?? '',
+    status: policy.status,
+    limits: policy.limits ?? '',
+    notes: policy.notes ?? '',
+  })
+  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
+  return (
+    <ModalShell title={`Edit Policy — ${policy.policyType}`} onClose={onClose}>
+      <div className="modal-form">
+        <ComboInput
+          label="Policy Type"
+          required
+          value={form.policyType}
+          options={allPolicyTypes}
+          onChange={(v) => set('policyType', v)}
+          onAddCustom={onAddPolicyType}
+          placeholder="Search or type policy type..."
+        />
+        <ComboInput
+          label="Carrier"
+          required
+          value={form.carrier}
+          options={allCarriers}
+          onChange={(v) => set('carrier', v)}
+          onAddCustom={onAddCarrier}
+          placeholder="Search or type carrier name..."
+        />
+        <label className="modal-field">
+          <span>Policy Number</span>
+          <input value={form.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Status</span>
+          <select value={form.status} onChange={(e) => set('status', e.target.value)}>
+            <option value="Active">Active</option>
+            <option value="Renewal review">Renewal Review</option>
+            <option value="Quoted">Quoted</option>
+            <option value="Bound">Bound</option>
+            <option value="Pending">Pending</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Expired">Expired</option>
+            <option value="Non-Renewed">Non-Renewed</option>
+            <option value="Renewed/Replaced">Renewed/Replaced</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Annual Premium ($)</span>
+          <input type="number" min="0" value={form.premium} onChange={(e) => set('premium', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Commission Rate (%)</span>
+          <input type="number" min="0" max="100" value={form.commissionRate} onChange={(e) => set('commissionRate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Effective Date</span>
+          <input type="date" value={form.effectiveDate} onChange={(e) => set('effectiveDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Expiration Date *</span>
+          <input type="date" value={form.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Billing Type</span>
+          <select value={form.billingType} onChange={(e) => set('billingType', e.target.value)}>
+            <option value="">Not set</option>
+            <option value="Direct Bill">Direct Bill</option>
+            <option value="Agency Bill">Agency Bill</option>
+            <option value="Financed">Financed</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Coverage Limits</span>
+          <input value={form.limits} onChange={(e) => set('limits', e.target.value)} placeholder="e.g. $1M/$2M GL" />
+        </label>
+        <label className="modal-field modal-field--full">
+          <span>Policy Notes</span>
+          <textarea className="modal-textarea" rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button className="primary-action" type="button" disabled={!form.policyType.trim() || !form.carrier.trim() || !form.expirationDate} onClick={() => onSave(form)}>Save Changes</button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function CarrierPortalModal({ portals, onClose, onSave, onDelete }: {
+  portals: CarrierPortalEntry[]
+  onClose: () => void
+  onSave: (entry: CarrierPortalEntry) => void
+  onDelete: (id: string) => void
+}) {
+  const blank = (): CarrierPortalEntry => ({ id: `portal-${Date.now()}`, name: '', url: '', username: '', notes: '' })
+  const [editing, setEditing] = useState<CarrierPortalEntry | null>(null)
+  const setField = (key: keyof CarrierPortalEntry, val: string) =>
+    setEditing((prev) => prev ? { ...prev, [key]: val } : prev)
+  return (
+    <ModalShell title="Carrier Portals" onClose={onClose}>
+      {!editing ? (
+        <>
+          <div className="carrier-portal-list">
+            {portals.length === 0 && (
+              <div className="empty-state" style={{ margin: '16px 20px' }}>No carrier portals saved yet. Add your carriers below.</div>
+            )}
+            {portals.map((p) => (
+              <div className="carrier-portal-row" key={p.id}>
+                <div className="carrier-portal-info">
+                  <strong>{p.name}</strong>
+                  {p.username && <span>User: {p.username}</span>}
+                  {p.notes && <em>{p.notes}</em>}
+                </div>
+                <div className="carrier-portal-actions">
+                  {p.url && (
+                    <a href={p.url.startsWith('http') ? p.url : `https://${p.url}`} target="_blank" rel="noopener noreferrer" className="secondary-action carrier-portal-link">
+                      Open portal
+                    </a>
+                  )}
+                  <button className="utility-action" type="button" onClick={() => setEditing({ ...p })}>Edit</button>
+                  <button className="utility-action" type="button" onClick={() => onDelete(p.id)}>Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="modal-footer">
+            <button className="secondary-action" type="button" onClick={onClose}>Close</button>
+            <button className="primary-action" type="button" onClick={() => setEditing(blank())}>+ Add Carrier Portal</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="modal-form">
+            <label className="modal-field modal-field--full">
+              <span>Carrier Name *</span>
+              <input value={editing.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Travelers" autoFocus />
+            </label>
+            <label className="modal-field modal-field--full">
+              <span>Portal URL</span>
+              <input value={editing.url} onChange={(e) => setField('url', e.target.value)} placeholder="https://agent.travelers.com" />
+            </label>
+            <label className="modal-field modal-field--full">
+              <span>Username / Agent Code</span>
+              <input value={editing.username} onChange={(e) => setField('username', e.target.value)} placeholder="Your login username" />
+            </label>
+            <label className="modal-field modal-field--full">
+              <span>Notes</span>
+              <input value={editing.notes} onChange={(e) => setField('notes', e.target.value)} placeholder="Quick notes (e.g. appointment #, contact)" />
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button className="secondary-action" type="button" onClick={() => setEditing(null)}>Back</button>
+            <button className="primary-action" type="button" disabled={!editing.name.trim()} onClick={() => onSave(editing)}>Save Portal</button>
+          </div>
+        </>
+      )}
     </ModalShell>
   )
 }
