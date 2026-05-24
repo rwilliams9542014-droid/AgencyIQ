@@ -50,6 +50,40 @@ export type Client = {
   health: 'Strong' | 'Needs review' | 'At risk'
 }
 
+export type PaymentMethod = 'Credit Card' | 'ACH / Bank Draft' | 'Check' | 'Cash' | 'Money Order' | 'Escrow / Mortgagee' | 'Premium Finance' | 'Online Portal' | 'Other'
+export type PaymentPlanType = 'Annual (paid in full)' | 'Semi-Annual (2 pay)' | 'Quarterly (4 pay)' | '10-Pay' | 'Monthly (EFT)' | 'Monthly (CC)' | 'Financed' | 'Escrow / Mortgage' | 'Other'
+export type BillingResponsibility = 'Insured pays carrier direct' | 'Agency collects & remits' | 'Mortgagee / Escrow pays' | 'Finance company pays carrier'
+
+export type PolicyBilling = {
+  paymentMethod?: PaymentMethod
+  paymentPlanType?: PaymentPlanType
+  billingResponsibility?: BillingResponsibility
+  installmentCount?: number
+  installmentAmount?: number
+  downPaymentAmount?: number
+  downPaymentDate?: string
+  nextPaymentDate?: string
+  nextPaymentAmount?: number
+  lastPaymentDate?: string
+  lastPaymentAmount?: number
+  paymentStatus?: 'Current' | 'Due soon' | 'Past due' | 'Paid in full' | 'NSF / Returned'
+  financeCompany?: string
+  financeContractNumber?: string
+  financeAmount?: number
+  financeMonthlyPayment?: number
+  financePayoffDate?: string
+  mortgageeOrLienholder?: string
+  mortgageeClause?: string
+  escrowAccount?: string
+  creditCardLast4?: string
+  creditCardExpiry?: string
+  achBankName?: string
+  achAccountLast4?: string
+  agencyBillInvoiceNumber?: string
+  agencyBillDueDate?: string
+  billingNotes?: string
+}
+
 export type Policy = {
   id: string
   accountId: string
@@ -74,6 +108,7 @@ export type Policy = {
   csrUserId?: string
   notes?: string
   expirationDate: string
+  billing?: PolicyBilling
   status:
     | 'Active'
     | 'Pending'

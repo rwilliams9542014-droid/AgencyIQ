@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Menu, Moon, Palette, Search, SlidersHorizontal, Settings, Sun, UsersRound, X } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
-import type { CrmDataset, Policy, UserRole } from './data/crmTypes'
+import type { CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
 
@@ -34,10 +34,12 @@ type DashboardWidgetId =
   | 'keyAccounts'
   | 'ownerReports'
 type ClientFilter = 'All' | 'Personal Lines' | 'Commercial Lines' | 'Active' | 'Prospect' | 'Inactive' | 'Renewal Due'
+type ClientSort = 'name-asc' | 'name-desc' | 'renewal-asc' | 'premium-desc'
 type ClientTab =
   | 'Overview'
   | 'Contact & Account'
   | 'Policies'
+  | 'Billing'
   | 'Tasks'
   | 'Notes & History'
   | 'Communications'
@@ -49,6 +51,7 @@ type ModalType =
   | 'addPolicy'
   | 'editClient'
   | 'editPolicy'
+  | 'editBilling'
   | 'addTask'
   | 'addNote'
   | 'addLead'
@@ -227,6 +230,7 @@ const clientTabs: ClientTab[] = [
   'Overview',
   'Contact & Account',
   'Policies',
+  'Billing',
   'Tasks',
   'Notes & History',
   'Communications',
@@ -507,7 +511,9 @@ function App() {
   const [aiAnswer, setAiAnswer] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
+  const [billingPolicyId, setBillingPolicyId] = useState<string | null>(null)
   const [clientPage, setClientPage] = useState(0)
+  const [clientSort, setClientSort] = useState<ClientSort>('name-asc')
   const CLIENT_PAGE_SIZE = 24
 
   useEffect(() => {
@@ -706,7 +712,22 @@ function App() {
     return matchesSearch && matchesFilter && Boolean(nextRenewal || client)
   })
 
-  const pagedClients = filteredClients.slice(clientPage * CLIENT_PAGE_SIZE, (clientPage + 1) * CLIENT_PAGE_SIZE)
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    if (clientSort === 'name-asc') return a.name.localeCompare(b.name)
+    if (clientSort === 'name-desc') return b.name.localeCompare(a.name)
+    if (clientSort === 'renewal-asc') {
+      const aRen = dataset.policies.filter((p) => p.clientId === a.id).map((p) => p.expirationDate).sort()[0] ?? '9999'
+      const bRen = dataset.policies.filter((p) => p.clientId === b.id).map((p) => p.expirationDate).sort()[0] ?? '9999'
+      return aRen.localeCompare(bRen)
+    }
+    if (clientSort === 'premium-desc') {
+      const aP = dataset.policies.filter((p) => p.clientId === a.id).reduce((s, p) => s + p.premium, 0)
+      const bP = dataset.policies.filter((p) => p.clientId === b.id).reduce((s, p) => s + p.premium, 0)
+      return bP - aP
+    }
+    return 0
+  })
+  const pagedClients = sortedClients.slice(clientPage * CLIENT_PAGE_SIZE, (clientPage + 1) * CLIENT_PAGE_SIZE)
   const totalPages = Math.ceil(filteredClients.length / CLIENT_PAGE_SIZE)
 
   const updateRole = (role: UserRole) => {
@@ -1096,6 +1117,18 @@ function App() {
     setModal(null)
     setEditingPolicyId(null)
     showToast('Policy updated')
+  }
+
+  const savePolicyBilling = (policyId: string, billing: PolicyBilling) => {
+    setDataset((current) => ({
+      ...current,
+      policies: current.policies.map((p) =>
+        p.id === policyId ? { ...p, billing } : p
+      ),
+    }))
+    setModal(null)
+    setBillingPolicyId(null)
+    showToast('Billing details saved')
   }
 
   const keyAccounts = useMemo(() => {
@@ -1502,6 +1535,24 @@ function App() {
                     </button>
                   ))}
                 </div>
+                <div className="sort-controls" role="group" aria-label="Sort clients">
+                  <span className="sort-label">Sort:</span>
+                  {([
+                    ['name-asc', 'Name A–Z'],
+                    ['name-desc', 'Name Z–A'],
+                    ['renewal-asc', 'Renewal Soon'],
+                    ['premium-desc', 'Highest Premium'],
+                  ] as [ClientSort, string][]).map(([val, label]) => (
+                    <button
+                      className={clientSort === val ? 'sort-tab active' : 'sort-tab'}
+                      type="button"
+                      key={val}
+                      onClick={() => { setClientSort(val); setClientPage(0) }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="folder-grid">
@@ -1895,6 +1946,123 @@ function App() {
                       <p>{note.body}</p>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {clientTab === 'Billing' && (
+                <div className="billing-tab">
+                  <div className="billing-tab-header">
+                    <div>
+                      <h2>Billing &amp; Payment Tracker</h2>
+                      <p>Manage how each policy is billed and track payment details across all carriers and plans.</p>
+                    </div>
+                  </div>
+                  {activeClientPolicies.length === 0 && (
+                    <div className="empty-state">No active policies on this client yet. Add a policy to start tracking billing.</div>
+                  )}
+                  {activeClientPolicies.map((policy) => {
+                    const b = policy.billing ?? {}
+                    const commission = (policy.premium * (policy.commissionRate ?? 0)) / 100
+                    return (
+                      <div className="billing-policy-card" key={policy.id}>
+                        <div className="billing-policy-header">
+                          <div className="billing-policy-identity">
+                            <span className="billing-policy-type">{policy.policyType}</span>
+                            <span className="billing-policy-carrier">{policy.carrier}</span>
+                            <span className="status-pill">{policy.status}</span>
+                          </div>
+                          <div className="billing-policy-premium-row">
+                            <span>{currency.format(policy.premium)} premium</span>
+                            <span className="billing-sep">·</span>
+                            <span>{currency.format(commission)} commission</span>
+                            <button
+                              className="secondary-action billing-edit-btn"
+                              type="button"
+                              onClick={() => { setBillingPolicyId(policy.id); setModal('editBilling') }}
+                            >
+                              Edit Billing
+                            </button>
+                          </div>
+                        </div>
+                        <div className="billing-detail-grid">
+                          <div className="billing-detail-section">
+                            <h3>Payment Method &amp; Plan</h3>
+                            <div className="detail-list">
+                              <div><span>Payment method</span><strong>{b.paymentMethod ?? 'Not set'}</strong></div>
+                              <div><span>Payment plan</span><strong>{b.paymentPlanType ?? policy.paymentPlan ?? 'Not set'}</strong></div>
+                              <div><span>Billing responsibility</span><strong>{b.billingResponsibility ?? policy.billingType ?? 'Not set'}</strong></div>
+                              <div><span>Payment status</span><strong className={b.paymentStatus === 'Past due' || b.paymentStatus === 'NSF / Returned' ? 'billing-status-alert' : ''}>{b.paymentStatus ?? policy.paymentStatus ?? 'Current'}</strong></div>
+                              {b.installmentCount && <div><span>Installments</span><strong>{b.installmentCount}-pay plan</strong></div>}
+                              {b.installmentAmount && <div><span>Installment amount</span><strong>{currency.format(b.installmentAmount)}</strong></div>}
+                            </div>
+                          </div>
+
+                          <div className="billing-detail-section">
+                            <h3>Payment Schedule</h3>
+                            <div className="detail-list">
+                              <div><span>Down payment</span><strong>{b.downPaymentAmount ? currency.format(b.downPaymentAmount) : (policy.downPayment ? currency.format(policy.downPayment) : 'N/A')}</strong></div>
+                              {b.downPaymentDate && <div><span>Down payment date</span><strong>{formatFullDate(b.downPaymentDate)}</strong></div>}
+                              <div><span>Next payment due</span><strong>{b.nextPaymentDate ? formatFullDate(b.nextPaymentDate) : 'Not scheduled'}</strong></div>
+                              {b.nextPaymentAmount && <div><span>Next payment amount</span><strong>{currency.format(b.nextPaymentAmount)}</strong></div>}
+                              <div><span>Last payment</span><strong>{b.lastPaymentDate ? formatFullDate(b.lastPaymentDate) : 'None recorded'}</strong></div>
+                              {b.lastPaymentAmount && <div><span>Last payment amount</span><strong>{currency.format(b.lastPaymentAmount)}</strong></div>}
+                            </div>
+                          </div>
+
+                          {(b.paymentMethod === 'Premium Finance' || b.paymentPlanType === 'Financed' || b.financeCompany || policy.financeCompany) && (
+                            <div className="billing-detail-section">
+                              <h3>Premium Finance</h3>
+                              <div className="detail-list">
+                                <div><span>Finance company</span><strong>{b.financeCompany ?? policy.financeCompany ?? 'Not set'}</strong></div>
+                                {b.financeContractNumber && <div><span>Contract #</span><strong>{b.financeContractNumber}</strong></div>}
+                                {b.financeAmount && <div><span>Amount financed</span><strong>{currency.format(b.financeAmount)}</strong></div>}
+                                {b.financeMonthlyPayment && <div><span>Monthly payment</span><strong>{currency.format(b.financeMonthlyPayment)}</strong></div>}
+                                {b.financePayoffDate && <div><span>Payoff date</span><strong>{formatFullDate(b.financePayoffDate)}</strong></div>}
+                              </div>
+                            </div>
+                          )}
+
+                          {(b.paymentMethod === 'Escrow / Mortgagee' || b.paymentPlanType === 'Escrow / Mortgage' || b.mortgageeOrLienholder || policy.mortgageeOrLienholder) && (
+                            <div className="billing-detail-section">
+                              <h3>Mortgagee / Escrow</h3>
+                              <div className="detail-list">
+                                <div><span>Mortgagee / lienholder</span><strong>{b.mortgageeOrLienholder ?? policy.mortgageeOrLienholder ?? 'Not set'}</strong></div>
+                                {b.mortgageeClause && <div><span>Mortgagee clause</span><strong>{b.mortgageeClause}</strong></div>}
+                                {b.escrowAccount && <div><span>Escrow account #</span><strong>{b.escrowAccount}</strong></div>}
+                              </div>
+                            </div>
+                          )}
+
+                          {(b.paymentMethod === 'Credit Card' || b.creditCardLast4) && (
+                            <div className="billing-detail-section">
+                              <h3>Credit Card on File</h3>
+                              <div className="detail-list">
+                                {b.creditCardLast4 && <div><span>Card ending in</span><strong>•••• {b.creditCardLast4}</strong></div>}
+                                {b.creditCardExpiry && <div><span>Expiry</span><strong>{b.creditCardExpiry}</strong></div>}
+                              </div>
+                            </div>
+                          )}
+
+                          {(b.paymentMethod === 'ACH / Bank Draft' || b.achBankName) && (
+                            <div className="billing-detail-section">
+                              <h3>ACH / Bank Draft</h3>
+                              <div className="detail-list">
+                                {b.achBankName && <div><span>Bank</span><strong>{b.achBankName}</strong></div>}
+                                {b.achAccountLast4 && <div><span>Account ending in</span><strong>•••• {b.achAccountLast4}</strong></div>}
+                              </div>
+                            </div>
+                          )}
+
+                          {b.billingNotes && (
+                            <div className="billing-detail-section billing-notes-section">
+                              <h3>Billing Notes</h3>
+                              <p className="billing-notes-body">{b.billingNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
 
@@ -2343,6 +2511,19 @@ function App() {
           onSave={addClient}
         />
       )}
+
+      {/* ─── Edit Billing Modal ──────────────────────────────── */}
+      {modal === 'editBilling' && billingPolicyId && (() => {
+        const pol = dataset.policies.find((p) => p.id === billingPolicyId)
+        if (!pol) return null
+        return (
+          <EditBillingModal
+            policy={pol}
+            onClose={() => { setModal(null); setBillingPolicyId(null) }}
+            onSave={(billing) => savePolicyBilling(billingPolicyId, billing)}
+          />
+        )
+      })()}
 
       {/* ─── Edit Client Modal ───────────────────────────────── */}
       {modal === 'editClient' && selectedClient && (
@@ -2836,6 +3017,233 @@ function AddLeadModal({ users, currentUserId, onClose, onSave }: {
         >
           Add Lead
         </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function EditBillingModal({ policy, onClose, onSave }: {
+  policy: import('./data/crmTypes').Policy
+  onClose: () => void
+  onSave: (billing: PolicyBilling) => void
+}) {
+  const b = policy.billing ?? {}
+  const [form, setForm] = useState<PolicyBilling>({
+    paymentMethod: b.paymentMethod,
+    paymentPlanType: b.paymentPlanType,
+    billingResponsibility: b.billingResponsibility,
+    installmentCount: b.installmentCount,
+    installmentAmount: b.installmentAmount,
+    downPaymentAmount: b.downPaymentAmount ?? policy.downPayment,
+    downPaymentDate: b.downPaymentDate ?? '',
+    nextPaymentDate: b.nextPaymentDate ?? '',
+    nextPaymentAmount: b.nextPaymentAmount,
+    lastPaymentDate: b.lastPaymentDate ?? '',
+    lastPaymentAmount: b.lastPaymentAmount,
+    paymentStatus: b.paymentStatus ?? policy.paymentStatus,
+    financeCompany: b.financeCompany ?? policy.financeCompany ?? '',
+    financeContractNumber: b.financeContractNumber ?? '',
+    financeAmount: b.financeAmount,
+    financeMonthlyPayment: b.financeMonthlyPayment ?? policy.monthlyPayment,
+    financePayoffDate: b.financePayoffDate ?? '',
+    mortgageeOrLienholder: b.mortgageeOrLienholder ?? policy.mortgageeOrLienholder ?? '',
+    mortgageeClause: b.mortgageeClause ?? '',
+    escrowAccount: b.escrowAccount ?? '',
+    creditCardLast4: b.creditCardLast4 ?? '',
+    creditCardExpiry: b.creditCardExpiry ?? '',
+    achBankName: b.achBankName ?? '',
+    achAccountLast4: b.achAccountLast4 ?? '',
+    agencyBillInvoiceNumber: b.agencyBillInvoiceNumber ?? '',
+    agencyBillDueDate: b.agencyBillDueDate ?? '',
+    billingNotes: b.billingNotes ?? '',
+  })
+  const set = <K extends keyof PolicyBilling>(key: K, val: PolicyBilling[K]) =>
+    setForm((f) => ({ ...f, [key]: val }))
+  const method = form.paymentMethod
+  const plan = form.paymentPlanType
+  const isFinanced = method === 'Premium Finance' || plan === 'Financed'
+  const isEscrow = method === 'Escrow / Mortgagee' || plan === 'Escrow / Mortgage'
+  const isCC = method === 'Credit Card'
+  const isACH = method === 'ACH / Bank Draft'
+  const isAgencyBill = form.billingResponsibility === 'Agency collects & remits'
+
+  return (
+    <ModalShell title={`Billing — ${policy.policyType} (${policy.carrier})`} onClose={onClose}>
+      <div className="modal-form billing-modal-form">
+        <div className="billing-modal-section-label">Payment Setup</div>
+        <label className="modal-field">
+          <span>Payment Method</span>
+          <select value={form.paymentMethod ?? ''} onChange={(e) => set('paymentMethod', e.target.value as import('./data/crmTypes').PaymentMethod || undefined)}>
+            <option value="">Not set</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="ACH / Bank Draft">ACH / Bank Draft</option>
+            <option value="Check">Check</option>
+            <option value="Cash">Cash</option>
+            <option value="Money Order">Money Order</option>
+            <option value="Escrow / Mortgagee">Escrow / Mortgagee</option>
+            <option value="Premium Finance">Premium Finance</option>
+            <option value="Online Portal">Online Portal</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Payment Plan</span>
+          <select value={form.paymentPlanType ?? ''} onChange={(e) => set('paymentPlanType', e.target.value as import('./data/crmTypes').PaymentPlanType || undefined)}>
+            <option value="">Not set</option>
+            <option value="Annual (paid in full)">Annual (paid in full)</option>
+            <option value="Semi-Annual (2 pay)">Semi-Annual (2 pay)</option>
+            <option value="Quarterly (4 pay)">Quarterly (4 pay)</option>
+            <option value="10-Pay">10-Pay</option>
+            <option value="Monthly (EFT)">Monthly (EFT)</option>
+            <option value="Monthly (CC)">Monthly (CC)</option>
+            <option value="Financed">Financed</option>
+            <option value="Escrow / Mortgage">Escrow / Mortgage</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Billing Responsibility</span>
+          <select value={form.billingResponsibility ?? ''} onChange={(e) => set('billingResponsibility', e.target.value as import('./data/crmTypes').BillingResponsibility || undefined)}>
+            <option value="">Not set</option>
+            <option value="Insured pays carrier direct">Insured pays carrier direct</option>
+            <option value="Agency collects &amp; remits">Agency collects &amp; remits</option>
+            <option value="Mortgagee / Escrow pays">Mortgagee / Escrow pays</option>
+            <option value="Finance company pays carrier">Finance company pays carrier</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Payment Status</span>
+          <select value={form.paymentStatus ?? ''} onChange={(e) => set('paymentStatus', e.target.value as PolicyBilling['paymentStatus'] || undefined)}>
+            <option value="">Not set</option>
+            <option value="Current">Current</option>
+            <option value="Due soon">Due soon</option>
+            <option value="Past due">Past due</option>
+            <option value="Paid in full">Paid in full</option>
+            <option value="NSF / Returned">NSF / Returned</option>
+          </select>
+        </label>
+        <label className="modal-field">
+          <span>Number of Installments</span>
+          <input type="number" min="1" max="12" value={form.installmentCount ?? ''} onChange={(e) => set('installmentCount', e.target.value ? Number(e.target.value) : undefined)} placeholder="e.g. 10" />
+        </label>
+        <label className="modal-field">
+          <span>Installment Amount ($)</span>
+          <input type="number" min="0" value={form.installmentAmount ?? ''} onChange={(e) => set('installmentAmount', e.target.value ? Number(e.target.value) : undefined)} placeholder="0.00" />
+        </label>
+
+        <div className="billing-modal-section-label">Down Payment</div>
+        <label className="modal-field">
+          <span>Down Payment Amount ($)</span>
+          <input type="number" min="0" value={form.downPaymentAmount ?? ''} onChange={(e) => set('downPaymentAmount', e.target.value ? Number(e.target.value) : undefined)} />
+        </label>
+        <label className="modal-field">
+          <span>Down Payment Date</span>
+          <input type="date" value={form.downPaymentDate ?? ''} onChange={(e) => set('downPaymentDate', e.target.value)} />
+        </label>
+
+        <div className="billing-modal-section-label">Next &amp; Last Payment</div>
+        <label className="modal-field">
+          <span>Next Payment Date</span>
+          <input type="date" value={form.nextPaymentDate ?? ''} onChange={(e) => set('nextPaymentDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Next Payment Amount ($)</span>
+          <input type="number" min="0" value={form.nextPaymentAmount ?? ''} onChange={(e) => set('nextPaymentAmount', e.target.value ? Number(e.target.value) : undefined)} />
+        </label>
+        <label className="modal-field">
+          <span>Last Payment Date</span>
+          <input type="date" value={form.lastPaymentDate ?? ''} onChange={(e) => set('lastPaymentDate', e.target.value)} />
+        </label>
+        <label className="modal-field">
+          <span>Last Payment Amount ($)</span>
+          <input type="number" min="0" value={form.lastPaymentAmount ?? ''} onChange={(e) => set('lastPaymentAmount', e.target.value ? Number(e.target.value) : undefined)} />
+        </label>
+
+        {isFinanced && (<>
+          <div className="billing-modal-section-label">Premium Finance Details</div>
+          <label className="modal-field">
+            <span>Finance Company</span>
+            <input value={form.financeCompany ?? ''} onChange={(e) => set('financeCompany', e.target.value)} placeholder="e.g. IPFS, First Insurance Funding" />
+          </label>
+          <label className="modal-field">
+            <span>Finance Contract #</span>
+            <input value={form.financeContractNumber ?? ''} onChange={(e) => set('financeContractNumber', e.target.value)} />
+          </label>
+          <label className="modal-field">
+            <span>Amount Financed ($)</span>
+            <input type="number" min="0" value={form.financeAmount ?? ''} onChange={(e) => set('financeAmount', e.target.value ? Number(e.target.value) : undefined)} />
+          </label>
+          <label className="modal-field">
+            <span>Monthly Payment ($)</span>
+            <input type="number" min="0" value={form.financeMonthlyPayment ?? ''} onChange={(e) => set('financeMonthlyPayment', e.target.value ? Number(e.target.value) : undefined)} />
+          </label>
+          <label className="modal-field">
+            <span>Finance Payoff Date</span>
+            <input type="date" value={form.financePayoffDate ?? ''} onChange={(e) => set('financePayoffDate', e.target.value)} />
+          </label>
+        </>)}
+
+        {isEscrow && (<>
+          <div className="billing-modal-section-label">Mortgagee / Escrow</div>
+          <label className="modal-field modal-field--full">
+            <span>Mortgagee / Lienholder</span>
+            <input value={form.mortgageeOrLienholder ?? ''} onChange={(e) => set('mortgageeOrLienholder', e.target.value)} placeholder="Bank or mortgage company name" />
+          </label>
+          <label className="modal-field modal-field--full">
+            <span>Mortgagee Clause</span>
+            <input value={form.mortgageeClause ?? ''} onChange={(e) => set('mortgageeClause', e.target.value)} placeholder="e.g. Its Successors and/or Assigns" />
+          </label>
+          <label className="modal-field">
+            <span>Escrow Account #</span>
+            <input value={form.escrowAccount ?? ''} onChange={(e) => set('escrowAccount', e.target.value)} />
+          </label>
+        </>)}
+
+        {isCC && (<>
+          <div className="billing-modal-section-label">Credit Card on File</div>
+          <label className="modal-field">
+            <span>Last 4 Digits</span>
+            <input maxLength={4} value={form.creditCardLast4 ?? ''} onChange={(e) => set('creditCardLast4', e.target.value)} placeholder="1234" />
+          </label>
+          <label className="modal-field">
+            <span>Expiry (MM/YY)</span>
+            <input value={form.creditCardExpiry ?? ''} onChange={(e) => set('creditCardExpiry', e.target.value)} placeholder="09/27" />
+          </label>
+        </>)}
+
+        {isACH && (<>
+          <div className="billing-modal-section-label">ACH / Bank Draft</div>
+          <label className="modal-field">
+            <span>Bank Name</span>
+            <input value={form.achBankName ?? ''} onChange={(e) => set('achBankName', e.target.value)} placeholder="e.g. Chase, Wells Fargo" />
+          </label>
+          <label className="modal-field">
+            <span>Account Last 4</span>
+            <input maxLength={4} value={form.achAccountLast4 ?? ''} onChange={(e) => set('achAccountLast4', e.target.value)} placeholder="5678" />
+          </label>
+        </>)}
+
+        {isAgencyBill && (<>
+          <div className="billing-modal-section-label">Agency Bill</div>
+          <label className="modal-field">
+            <span>Invoice Number</span>
+            <input value={form.agencyBillInvoiceNumber ?? ''} onChange={(e) => set('agencyBillInvoiceNumber', e.target.value)} />
+          </label>
+          <label className="modal-field">
+            <span>Invoice Due Date</span>
+            <input type="date" value={form.agencyBillDueDate ?? ''} onChange={(e) => set('agencyBillDueDate', e.target.value)} />
+          </label>
+        </>)}
+
+        <div className="billing-modal-section-label">Notes</div>
+        <label className="modal-field modal-field--full">
+          <span>Billing Notes</span>
+          <textarea className="modal-textarea" rows={3} value={form.billingNotes ?? ''} onChange={(e) => set('billingNotes', e.target.value)} placeholder="Payment arrangements, special instructions, notes on remittance..." />
+        </label>
+      </div>
+      <div className="modal-footer">
+        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
+        <button className="primary-action" type="button" onClick={() => onSave(form)}>Save Billing</button>
       </div>
     </ModalShell>
   )
