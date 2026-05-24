@@ -72,7 +72,19 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
   const [legalOpen, setLegalOpen] = useState(false)
   const [contactSent, setContactSent] = useState(false)
   const [form, setForm] = useState({ name: '', agency: '', email: '', phone: '', message: '' })
+  const [mascotClicks, setMascotClicks] = useState(0)
+  const [mascotZapping, setMascotZapping] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
+  const mascotRef = useRef<HTMLImageElement>(null)
+
+  const handleMascotClick = () => {
+    const next = mascotClicks + 1
+    setMascotClicks(next)
+    if (next >= 3) {
+      setMascotZapping(true)
+      setTimeout(() => { setMascotZapping(false); setMascotClicks(0) }, 2000)
+    }
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setHeroVisible(true), 80)
@@ -94,6 +106,80 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
     { label: 'About', id: 'lp-about' },
     { label: 'Contact', id: 'lp-contact' },
   ]
+
+  const renderLpLightning = () => {
+    if (!mascotZapping || !mascotRef.current) return null
+    const rect = mascotRef.current.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const W = window.innerWidth
+    const H = window.innerHeight
+
+    type BoltDef = { pts: string; delay: number; branches: string[] }
+    const bolts: BoltDef[] = [
+      { pts: `${cx},${cy} ${cx-40},${cy-60} ${cx*0.55},${cy*0.45} ${cx*0.3},${cy*0.18} 0,0`,
+        delay: 0, branches: [`${cx*0.55},${cy*0.45} ${cx*0.38},${cy*0.55} ${cx*0.2},${cy*0.5}`, `${cx*0.3},${cy*0.18} ${cx*0.18},${cy*0.3} 0,${cy*0.22}`] },
+      { pts: `${cx},${cy} ${cx+18},${cy*0.5} ${cx-22},${cy*0.22} ${cx+12},${cy*0.05} ${cx-5},0`,
+        delay: 0.03, branches: [`${cx+18},${cy*0.5} ${cx+65},${cy*0.38} ${cx+90},${cy*0.48}`, `${cx-22},${cy*0.22} ${cx-55},${cy*0.28} ${cx-78},${cy*0.18}`] },
+      { pts: `${cx},${cy} ${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.82},${cy*0.1} ${W},0`,
+        delay: 0.01, branches: [`${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.42},${cy*0.42} ${cx+(W-cx)*0.6},${cy*0.5}`, `${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.72},${cy*0.42} ${cx+(W-cx)*0.68},${cy*0.55}`] },
+      { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.82},${cy-12} ${W},${cy+5}`,
+        delay: 0.05, branches: [`${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.36},${cy-65} ${cx+(W-cx)*0.52},${cy-55}`, `${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.62},${cy+80} ${cx+(W-cx)*0.78},${cy+68}`] },
+      { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.78},${cy+(H-cy)*0.82} ${W},${H}`,
+        delay: 0.02, branches: [`${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.22},${cy+(H-cy)*0.48} ${cx+(W-cx)*0.12},${cy+(H-cy)*0.44}`, `${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.65},${cy+(H-cy)*0.52} ${cx+(W-cx)*0.72},${cy+(H-cy)*0.62}`] },
+      { pts: `${cx},${cy} ${cx-28},${cy+(H-cy)*0.35} ${cx+22},${cy+(H-cy)*0.62} ${cx-15},${cy+(H-cy)*0.82} ${cx+8},${H}`,
+        delay: 0.04, branches: [`${cx-28},${cy+(H-cy)*0.35} ${cx-75},${cy+(H-cy)*0.42} ${cx-100},${cy+(H-cy)*0.38}`, `${cx+22},${cy+(H-cy)*0.62} ${cx+68},${cy+(H-cy)*0.68} ${cx+88},${cy+(H-cy)*0.6}`] },
+      { pts: `${cx},${cy} ${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.2},${cy+(H-cy)*0.8} 0,${H}`,
+        delay: 0.06, branches: [`${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.58},${cy+(H-cy)*0.22} ${cx*0.48},${cy+(H-cy)*0.35}`, `${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.32},${cy+(H-cy)*0.48} ${cx*0.18},${cy+(H-cy)*0.55}`] },
+      { pts: `${cx},${cy} ${cx*0.6},${cy+25} ${cx*0.32},${cy-30} ${cx*0.12},${cy+18} 0,${cy+8}`,
+        delay: 0.07, branches: [`${cx*0.6},${cy+25} ${cx*0.5},${cy+72} ${cx*0.35},${cy+60}`, `${cx*0.32},${cy-30} ${cx*0.22},${cy-70} ${cx*0.12},${cy-58}`] },
+    ]
+
+    const sparks = Array.from({ length: 32 }, (_, i) => {
+      const angle = (i / 32) * Math.PI * 2
+      const r1 = 55 + (i % 5) * 18
+      const r2 = r1 + 40 + (i % 7) * 22
+      return { x1: cx + Math.cos(angle) * r1, y1: cy + Math.sin(angle) * r1, x2: cx + Math.cos(angle) * r2, y2: cy + Math.sin(angle) * r2, delay: 0.04 + (i % 8) * 0.018 }
+    })
+
+    return (
+      <div className="lp-zap-overlay" aria-hidden="true">
+        <svg className="lp-zap-svg" viewBox={`0 0 ${W} ${H}`}>
+          <defs>
+            <filter id="lp-zap-glow-tight" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="2.5" result="b1" />
+              <feGaussianBlur stdDeviation="6" result="b2" />
+              <feMerge><feMergeNode in="b2" /><feMergeNode in="b1" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <filter id="lp-zap-glow-wide" x="-120%" y="-120%" width="340%" height="340%">
+              <feGaussianBlur stdDeviation="16" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <filter id="lp-zap-spark" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="1.5" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+          {sparks.map((s, i) => (
+            <line key={`lp-spark-${i}`} className="lp-zap-spark" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} style={{ animationDelay: `${s.delay}s` }} />
+          ))}
+          {bolts.map((b, i) => (
+            <g key={`lp-bolt-${i}`}>
+              <polyline className="lp-zap-bolt-glow" points={b.pts} style={{ animationDelay: `${b.delay}s` }} />
+              <polyline className="lp-zap-bolt-core" points={b.pts} style={{ animationDelay: `${b.delay}s` }} />
+              {b.branches.map((br, j) => (
+                <polyline key={`lp-br-${i}-${j}`} className="lp-zap-bolt-branch" points={br} style={{ animationDelay: `${b.delay + 0.05 + j * 0.03}s` }} />
+              ))}
+            </g>
+          ))}
+          <circle className="lp-zap-shockring" cx={cx} cy={cy} r="10" />
+          <circle className="lp-zap-shockring lp-zap-shockring--2" cx={cx} cy={cy} r="10" />
+          <circle className="lp-zap-origin" cx={cx} cy={cy} r="8" />
+        </svg>
+        <div className="lp-zap-flash" />
+      </div>
+    )
+  }
 
   return (
     <div className="lp">
@@ -167,9 +253,12 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
           <div className="lp-hero-visual">
             <div className="lp-hero-glow" />
             <img
+              ref={mascotRef}
               src={mascotImg}
               alt="IQ — your AgencyIQ assistant"
-              className="lp-hero-mascot"
+              className={`lp-hero-mascot${mascotZapping ? ' lp-mascot--zapping' : ''}`}
+              onClick={handleMascotClick}
+              style={{ cursor: 'pointer' }}
             />
             <div className="lp-bubble lp-bubble--top">
               <strong>Renewal in 14 days</strong>
@@ -437,6 +526,9 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
           </div>
         </div>
       </footer>
+
+      {/* ── LIGHTNING OVERLAY ─────────────────────────────────── */}
+      {renderLpLightning()}
 
       {/* ── LEGAL MODAL ───────────────────────────────────────── */}
       {legalOpen && (

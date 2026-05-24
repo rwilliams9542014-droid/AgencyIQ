@@ -4648,113 +4648,135 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
 
   return (
     <>
-      {/* Full-screen lightning overlay — bolts radiate from mascot */}
+      {/* Full-screen lightning overlay — cinematic bolt burst from mascot */}
       {zapping && (() => {
         const cx = pos.x + 45;
         const cy = pos.y + 45;
         const W = window.innerWidth;
         const H = window.innerHeight;
-        // Each bolt: from mascot center → corner/edge target, with jagged midpoints
-        const bolts: { pts: string; delay: number; branch?: string }[] = [
-          // top-left corner
-          {
-            pts: `${cx},${cy} ${cx * 0.6},${cy * 0.5} ${cx * 0.3},${cy * 0.2} 0,0`,
-            delay: 0,
-            branch: `${cx * 0.6},${cy * 0.5} ${cx * 0.45},${cy * 0.35} ${cx * 0.25},${cy * 0.45}`,
-          },
-          // top center
-          {
-            pts: `${cx},${cy} ${cx + 20},${cy * 0.4} ${cx - 15},${cy * 0.1} ${cx + 10},0`,
-            delay: 0.05,
-            branch: `${cx + 20},${cy * 0.4} ${cx + 60},${cy * 0.25} ${cx + 80},${cy * 0.35}`,
-          },
-          // top-right corner
-          {
-            pts: `${cx},${cy} ${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.7},${cy * 0.25} ${W},0`,
-            delay: 0.02,
-            branch: `${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.55},${cy * 0.45} ${cx + (W - cx) * 0.65},${cy * 0.6}`,
-          },
-          // right edge mid
-          {
-            pts: `${cx},${cy} ${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.75},${cy - 20} ${W},${cy + 10}`,
-            delay: 0.08,
-            branch: `${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.5},${cy + 80} ${cx + (W - cx) * 0.7},${cy + 60}`,
-          },
-          // bottom-right corner
-          {
-            pts: `${cx},${cy} ${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.6},${cy + (H - cy) * 0.7} ${W},${H}`,
-            delay: 0.03,
-            branch: `${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.4},${cy + (H - cy) * 0.55} ${cx + (W - cx) * 0.25},${cy + (H - cy) * 0.6}`,
-          },
-          // bottom center
-          {
-            pts: `${cx},${cy} ${cx - 25},${cy + (H - cy) * 0.45} ${cx + 20},${cy + (H - cy) * 0.75} ${cx - 10},${H}`,
-            delay: 0.06,
-            branch: `${cx - 25},${cy + (H - cy) * 0.45} ${cx - 70},${cy + (H - cy) * 0.5} ${cx - 90},${cy + (H - cy) * 0.65}`,
-          },
-          // bottom-left corner
-          {
-            pts: `${cx},${cy} ${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.35},${cy + (H - cy) * 0.65} 0,${H}`,
-            delay: 0.04,
-            branch: `${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.55},${cy + (H - cy) * 0.5} ${cx * 0.35},${cy + (H - cy) * 0.45}`,
-          },
-          // left edge mid
-          {
-            pts: `${cx},${cy} ${cx * 0.55},${cy - 20} ${cx * 0.25},${cy + 30} 0,${cy + 15}`,
-            delay: 0.07,
-            branch: `${cx * 0.55},${cy - 20} ${cx * 0.45},${cy - 60} ${cx * 0.3},${cy - 50}`,
-          },
-        ];
+
+        type BoltDef = { pts: string; delay: number; branches: string[] }
+        const bolts: BoltDef[] = [
+          // top-left
+          { pts: `${cx},${cy} ${cx-40},${cy-60} ${cx*0.55},${cy*0.45} ${cx*0.3},${cy*0.18} 0,0`,
+            delay: 0, branches: [
+              `${cx*0.55},${cy*0.45} ${cx*0.38},${cy*0.55} ${cx*0.2},${cy*0.5}`,
+              `${cx*0.3},${cy*0.18} ${cx*0.18},${cy*0.3} 0,${cy*0.22}`,
+            ]},
+          // top-center
+          { pts: `${cx},${cy} ${cx+18},${cy*0.5} ${cx-22},${cy*0.22} ${cx+12},${cy*0.05} ${cx-5},0`,
+            delay: 0.03, branches: [
+              `${cx+18},${cy*0.5} ${cx+65},${cy*0.38} ${cx+90},${cy*0.48}`,
+              `${cx-22},${cy*0.22} ${cx-55},${cy*0.28} ${cx-78},${cy*0.18}`,
+            ]},
+          // top-right
+          { pts: `${cx},${cy} ${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.82},${cy*0.1} ${W},0`,
+            delay: 0.01, branches: [
+              `${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.42},${cy*0.42} ${cx+(W-cx)*0.6},${cy*0.5}`,
+              `${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.72},${cy*0.42} ${cx+(W-cx)*0.68},${cy*0.55}`,
+            ]},
+          // right
+          { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.82},${cy-12} ${W},${cy+5}`,
+            delay: 0.05, branches: [
+              `${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.36},${cy-65} ${cx+(W-cx)*0.52},${cy-55}`,
+              `${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.62},${cy+80} ${cx+(W-cx)*0.78},${cy+68}`,
+            ]},
+          // bottom-right
+          { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.78},${cy+(H-cy)*0.82} ${W},${H}`,
+            delay: 0.02, branches: [
+              `${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.22},${cy+(H-cy)*0.48} ${cx+(W-cx)*0.12},${cy+(H-cy)*0.44}`,
+              `${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.65},${cy+(H-cy)*0.52} ${cx+(W-cx)*0.72},${cy+(H-cy)*0.62}`,
+            ]},
+          // bottom-center
+          { pts: `${cx},${cy} ${cx-28},${cy+(H-cy)*0.35} ${cx+22},${cy+(H-cy)*0.62} ${cx-15},${cy+(H-cy)*0.82} ${cx+8},${H}`,
+            delay: 0.04, branches: [
+              `${cx-28},${cy+(H-cy)*0.35} ${cx-75},${cy+(H-cy)*0.42} ${cx-100},${cy+(H-cy)*0.38}`,
+              `${cx+22},${cy+(H-cy)*0.62} ${cx+68},${cy+(H-cy)*0.68} ${cx+88},${cy+(H-cy)*0.6}`,
+            ]},
+          // bottom-left
+          { pts: `${cx},${cy} ${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.2},${cy+(H-cy)*0.8} 0,${H}`,
+            delay: 0.06, branches: [
+              `${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.58},${cy+(H-cy)*0.22} ${cx*0.48},${cy+(H-cy)*0.35}`,
+              `${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.32},${cy+(H-cy)*0.48} ${cx*0.18},${cy+(H-cy)*0.55}`,
+            ]},
+          // left
+          { pts: `${cx},${cy} ${cx*0.6},${cy+25} ${cx*0.32},${cy-30} ${cx*0.12},${cy+18} 0,${cy+8}`,
+            delay: 0.07, branches: [
+              `${cx*0.6},${cy+25} ${cx*0.5},${cy+72} ${cx*0.35},${cy+60}`,
+              `${cx*0.32},${cy-30} ${cx*0.22},${cy-70} ${cx*0.12},${cy-58}`,
+            ]},
+        ]
+
+        // Spark particles — short streaks flying outward
+        const sparks = Array.from({ length: 32 }, (_, i) => {
+          const angle = (i / 32) * Math.PI * 2
+          const r1 = 55 + (i % 5) * 18
+          const r2 = r1 + 40 + (i % 7) * 22
+          return {
+            x1: cx + Math.cos(angle) * r1,
+            y1: cy + Math.sin(angle) * r1,
+            x2: cx + Math.cos(angle) * r2,
+            y2: cy + Math.sin(angle) * r2,
+            delay: 0.04 + (i % 8) * 0.018,
+          }
+        })
+
         return (
           <div className="iq-zap-overlay" aria-hidden="true">
             <svg className="iq-radial-bolts" viewBox={`0 0 ${W} ${H}`}>
               <defs>
-                <filter id="bolt-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="3" result="blur1" />
-                  <feGaussianBlur stdDeviation="8" result="blur2" />
-                  <feMerge>
-                    <feMergeNode in="blur2" />
-                    <feMergeNode in="blur1" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
+                <filter id="zap-glow-tight" x="-60%" y="-60%" width="220%" height="220%">
+                  <feGaussianBlur stdDeviation="2.5" result="b1" />
+                  <feGaussianBlur stdDeviation="6" result="b2" />
+                  <feMerge><feMergeNode in="b2" /><feMergeNode in="b1" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
-                <filter id="bolt-glow-wide" x="-100%" y="-100%" width="300%" height="300%">
-                  <feGaussianBlur stdDeviation="14" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
+                <filter id="zap-glow-wide" x="-120%" y="-120%" width="340%" height="340%">
+                  <feGaussianBlur stdDeviation="16" result="b" />
+                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="zap-spark" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur stdDeviation="1.5" result="b" />
+                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
+
+              {/* Sparks — gold/orange streaks like the photo's flying embers */}
+              {sparks.map((s, i) => (
+                <line
+                  key={`spark-${i}`}
+                  className="iq-zap-spark"
+                  x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+                  style={{ animationDelay: `${s.delay}s` }}
+                />
+              ))}
+
+              {/* Main bolts */}
               {bolts.map((b, i) => (
-                <g key={i} style={{ animationDelay: `${b.delay}s` }}>
-                  {/* Wide glow layer */}
-                  <polyline
-                    className="iq-radial-bolt-glow"
-                    points={b.pts}
-                    style={{ animationDelay: `${b.delay}s` }}
-                  />
-                  {/* Core bolt */}
-                  <polyline
-                    className="iq-radial-bolt-core"
-                    points={b.pts}
-                    style={{ animationDelay: `${b.delay}s` }}
-                  />
-                  {b.branch && (
-                    <polyline
-                      className="iq-radial-bolt-branch"
-                      points={b.branch}
-                      style={{ animationDelay: `${b.delay + 0.04}s` }}
-                    />
-                  )}
+                <g key={`bolt-${i}`}>
+                  {/* Outer glow halo */}
+                  <polyline className="iq-radial-bolt-glow" points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }} />
+                  {/* Bright core */}
+                  <polyline className="iq-radial-bolt-core" points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }} />
+                  {/* Branches */}
+                  {b.branches.map((br, j) => (
+                    <polyline key={`br-${i}-${j}`} className="iq-radial-bolt-branch" points={br}
+                      style={{ animationDelay: `${b.delay + 0.05 + j * 0.03}s` }} />
+                  ))}
                 </g>
               ))}
-              {/* Origin burst */}
+
+              {/* Explosion shockwave ring — orange/gold like the photo */}
+              <circle className="iq-zap-shockring" cx={cx} cy={cy} r="10" />
+              <circle className="iq-zap-shockring iq-zap-shockring--2" cx={cx} cy={cy} r="10" />
+
+              {/* Origin burst — white-hot core */}
               <circle className="iq-zap-origin" cx={cx} cy={cy} r="8" />
             </svg>
             <div className="iq-zap-flash" />
           </div>
-        );
+        )
       })()}
 
     <div
