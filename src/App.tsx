@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Mail, Menu, Monitor, Moon, Palette, RefreshCcw, Search, Send, SlidersHorizontal, Settings, Sparkles, Sun, UsersRound, X, Zap } from 'lucide-react'
+import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Mail, Menu, Moon, Palette, RefreshCcw, Search, Send, SlidersHorizontal, Settings, Sparkles, Sun, UsersRound, X, Zap } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
@@ -150,25 +150,17 @@ type PaletteId =
   | 'plum'
   | 'classic'
   | 'contrast'
-  | 'system'
 type ColorMode = 'light' | 'dark'
 
 type ThemeOption = {
   id: PaletteId
   label: string
   colors: string[]
-  isSystem?: boolean
 }
 
 const defaultPalette: PaletteId = 'agencyiq'
 
 const themeOptions: ThemeOption[] = [
-  {
-    id: 'system',
-    label: 'Match Desktop',
-    colors: ['#888', '#aaa', '#ccc'],
-    isSystem: true,
-  },
   {
     id: 'coastal',
     label: 'Coastal Teal',
@@ -213,84 +205,6 @@ const themeOptions: ThemeOption[] = [
 
 const isPaletteId = (value: string | null): value is PaletteId => {
   return themeOptions.some((option) => option.id === value)
-}
-
-// ── System theme helpers ────────────────────────────────────────────
-
-function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-  const l = (max + min) / 2
-  if (max === min) return [0, 0, Math.round(l * 100)]
-  const d = max - min
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-  let h = 0
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
-  else if (max === g) h = ((b - r) / d + 2) / 6
-  else h = ((r - g) / d + 4) / 6
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)]
-}
-
-function rgbStringToHex(rgb: string): string | null {
-  const m = rgb.match(/(\d+),\s*(\d+),\s*(\d+)/)
-  if (!m) return null
-  return '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('')
-}
-
-// Read the OS accent color using the CSS AccentColor system keyword
-function readOsAccentColor(): string | null {
-  try {
-    const probe = document.createElement('div')
-    probe.style.cssText = 'position:absolute;width:1px;height:1px;background:AccentColor;visibility:hidden;'
-    document.body.appendChild(probe)
-    const raw = getComputedStyle(probe).backgroundColor
-    document.body.removeChild(probe)
-    return rgbStringToHex(raw)
-  } catch { return null }
-}
-
-// Map OS accent hue → best matching CRM palette
-function osAccentToPalette(hex: string): PaletteId {
-  const [h, s, l] = hexToHsl(hex)
-  // Very dark / achromatic → graphite
-  if (s < 15) return l < 40 ? 'graphite' : 'classic'
-  // Hue ranges
-  if (h >= 165 && h <= 210) return 'agencyiq'   // cyan/teal
-  if (h >= 130 && h < 165)  return 'evergreen'  // green
-  if (h >= 210 && h < 260)  return 'sapphire'   // blue
-  if (h >= 260 && h < 310)  return 'plum'       // purple/violet
-  if (h >= 310 || h < 20)   return 'classic'    // red/pink → neutral
-  if (h >= 20 && h < 60)    return 'graphite'   // orange/amber
-  if (h >= 60 && h < 130)   return 'coastal'    // yellow-green
-  return 'agencyiq'
-}
-
-// Inject dynamic CSS variables derived from the OS accent color
-function applySystemThemeVars(hex: string, isDark: boolean) {
-  const [h, s] = hexToHsl(hex)
-  const root = document.documentElement
-  // Primary accent — use the actual OS color
-  root.style.setProperty('--sys-accent', hex)
-  root.style.setProperty('--sys-accent-h', String(h))
-  root.style.setProperty('--sys-accent-s', `${s}%`)
-  // Derive lighter/darker shades
-  root.style.setProperty('--sys-accent-light', `hsl(${h},${s}%,${isDark ? 75 : 45}%)`)
-  root.style.setProperty('--sys-accent-glow',  `hsl(${h},${s}%,${isDark ? 65 : 55}%)`)
-  root.style.setProperty('--sys-accent-muted',  `hsl(${h},${Math.round(s * 0.4)}%,${isDark ? 22 : 92}%)`)
-  root.style.setProperty('--sys-bg',  isDark ? `hsl(${h},12%,8%)` : `hsl(${h},8%,97%)`)
-  root.style.setProperty('--sys-surface', isDark ? `hsl(${h},10%,13%)` : `hsl(${h},6%,100%)`)
-  root.style.setProperty('--sys-border', isDark ? `hsl(${h},14%,22%)` : `hsl(${h},10%,88%)`)
-  root.style.setProperty('--sys-text', isDark ? `hsl(${h},8%,94%)` : `hsl(${h},10%,10%)`)
-  root.style.setProperty('--sys-text-muted', isDark ? `hsl(${h},6%,60%)` : `hsl(${h},6%,45%)`)
-}
-
-function clearSystemThemeVars() {
-  const root = document.documentElement
-  ;['--sys-accent','--sys-accent-h','--sys-accent-s','--sys-accent-light','--sys-accent-glow',
-    '--sys-accent-muted','--sys-bg','--sys-surface','--sys-border','--sys-text','--sys-text-muted']
-    .forEach(v => root.style.removeProperty(v))
 }
 
 const currency = new Intl.NumberFormat('en-US', {
@@ -714,30 +628,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('agencyiq-mode', mode)
   }, [mode])
-
-  // System theme: sync OS accent color + auto dark/light mode
-  const [systemAccentPalette, setSystemAccentPalette] = useState<PaletteId>('agencyiq')
-  useEffect(() => {
-    if (palette !== 'system') { clearSystemThemeVars(); return }
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    setMode(isDark ? 'dark' : 'light')
-    const hex = readOsAccentColor()
-    if (hex) {
-      const matched = osAccentToPalette(hex)
-      setSystemAccentPalette(matched)
-      applySystemThemeVars(hex, isDark)
-    } else {
-      setSystemAccentPalette('agencyiq')
-    }
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const onMqChange = (e: MediaQueryListEvent) => {
-      setMode(e.matches ? 'dark' : 'light')
-      const h2 = readOsAccentColor()
-      if (h2) applySystemThemeVars(h2, e.matches)
-    }
-    mq.addEventListener('change', onMqChange)
-    return () => { mq.removeEventListener('change', onMqChange); clearSystemThemeVars() }
-  }, [palette])
 
   useEffect(() => {
     saveDataset(dataset)
@@ -1462,7 +1352,7 @@ function App() {
   }, [renewalPolicies, hideEscrow, hideAutopay, renewalViewMode, renewalMonth, renewalDateFrom, renewalDateTo, renewalSort])
 
   return (
-    <div className="app-shell" data-mode={mode} data-palette={palette === 'system' ? systemAccentPalette : palette} data-system={palette === 'system' ? 'true' : undefined}>
+    <div className="app-shell" data-mode={mode} data-palette={palette}>
       <aside className="sidebar">
         <div className="logo-wrap sidebar-logo">
           <div className="logo-button">
@@ -1573,27 +1463,18 @@ function App() {
                   <div className="palette-options" role="group" aria-label="Color scheme">
                     {themeOptions.map((theme) => (
                       <button
-                        className={`scheme-option${palette === theme.id ? ' active' : ''}${theme.isSystem ? ' scheme-option--system' : ''}`}
+                        className={palette === theme.id ? 'scheme-option active' : 'scheme-option'}
                         type="button"
                         key={theme.id}
                         aria-pressed={palette === theme.id}
                         onClick={() => setPalette(theme.id)}
                       >
-                        {theme.isSystem ? (
-                          <span className="scheme-system-icon" aria-hidden="true">
-                            <Monitor size={14} />
-                          </span>
-                        ) : (
-                          <span className="scheme-swatches" aria-hidden="true">
-                            {theme.colors.map((color) => (
-                              <span key={color} style={{ background: color }} />
-                            ))}
-                          </span>
-                        )}
+                        <span className="scheme-swatches" aria-hidden="true">
+                          {theme.colors.map((color) => (
+                            <span key={color} style={{ background: color }} />
+                          ))}
+                        </span>
                         <span>{theme.label}</span>
-                        {theme.isSystem && palette === 'system' && (
-                          <span className="scheme-system-matched">→ {themeOptions.find(t => t.id === systemAccentPalette)?.label}</span>
-                        )}
                       </button>
                     ))}
                   </div>
@@ -4767,135 +4648,113 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
 
   return (
     <>
-      {/* Full-screen lightning overlay — cinematic bolt burst from mascot */}
+      {/* Full-screen lightning overlay — bolts radiate from mascot */}
       {zapping && (() => {
         const cx = pos.x + 45;
         const cy = pos.y + 45;
         const W = window.innerWidth;
         const H = window.innerHeight;
-
-        type BoltDef = { pts: string; delay: number; branches: string[] }
-        const bolts: BoltDef[] = [
-          // top-left
-          { pts: `${cx},${cy} ${cx-40},${cy-60} ${cx*0.55},${cy*0.45} ${cx*0.3},${cy*0.18} 0,0`,
-            delay: 0, branches: [
-              `${cx*0.55},${cy*0.45} ${cx*0.38},${cy*0.55} ${cx*0.2},${cy*0.5}`,
-              `${cx*0.3},${cy*0.18} ${cx*0.18},${cy*0.3} 0,${cy*0.22}`,
-            ]},
-          // top-center
-          { pts: `${cx},${cy} ${cx+18},${cy*0.5} ${cx-22},${cy*0.22} ${cx+12},${cy*0.05} ${cx-5},0`,
-            delay: 0.03, branches: [
-              `${cx+18},${cy*0.5} ${cx+65},${cy*0.38} ${cx+90},${cy*0.48}`,
-              `${cx-22},${cy*0.22} ${cx-55},${cy*0.28} ${cx-78},${cy*0.18}`,
-            ]},
-          // top-right
-          { pts: `${cx},${cy} ${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.82},${cy*0.1} ${W},0`,
-            delay: 0.01, branches: [
-              `${cx+(W-cx)*0.35},${cy*0.6} ${cx+(W-cx)*0.42},${cy*0.42} ${cx+(W-cx)*0.6},${cy*0.5}`,
-              `${cx+(W-cx)*0.62},${cy*0.28} ${cx+(W-cx)*0.72},${cy*0.42} ${cx+(W-cx)*0.68},${cy*0.55}`,
-            ]},
-          // right
-          { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.82},${cy-12} ${W},${cy+5}`,
-            delay: 0.05, branches: [
-              `${cx+(W-cx)*0.3},${cy-18} ${cx+(W-cx)*0.36},${cy-65} ${cx+(W-cx)*0.52},${cy-55}`,
-              `${cx+(W-cx)*0.58},${cy+32} ${cx+(W-cx)*0.62},${cy+80} ${cx+(W-cx)*0.78},${cy+68}`,
-            ]},
-          // bottom-right
-          { pts: `${cx},${cy} ${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.78},${cy+(H-cy)*0.82} ${W},${H}`,
-            delay: 0.02, branches: [
-              `${cx+(W-cx)*0.3},${cy+(H-cy)*0.32} ${cx+(W-cx)*0.22},${cy+(H-cy)*0.48} ${cx+(W-cx)*0.12},${cy+(H-cy)*0.44}`,
-              `${cx+(W-cx)*0.55},${cy+(H-cy)*0.6} ${cx+(W-cx)*0.65},${cy+(H-cy)*0.52} ${cx+(W-cx)*0.72},${cy+(H-cy)*0.62}`,
-            ]},
-          // bottom-center
-          { pts: `${cx},${cy} ${cx-28},${cy+(H-cy)*0.35} ${cx+22},${cy+(H-cy)*0.62} ${cx-15},${cy+(H-cy)*0.82} ${cx+8},${H}`,
-            delay: 0.04, branches: [
-              `${cx-28},${cy+(H-cy)*0.35} ${cx-75},${cy+(H-cy)*0.42} ${cx-100},${cy+(H-cy)*0.38}`,
-              `${cx+22},${cy+(H-cy)*0.62} ${cx+68},${cy+(H-cy)*0.68} ${cx+88},${cy+(H-cy)*0.6}`,
-            ]},
-          // bottom-left
-          { pts: `${cx},${cy} ${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.2},${cy+(H-cy)*0.8} 0,${H}`,
-            delay: 0.06, branches: [
-              `${cx*0.7},${cy+(H-cy)*0.28} ${cx*0.58},${cy+(H-cy)*0.22} ${cx*0.48},${cy+(H-cy)*0.35}`,
-              `${cx*0.42},${cy+(H-cy)*0.55} ${cx*0.32},${cy+(H-cy)*0.48} ${cx*0.18},${cy+(H-cy)*0.55}`,
-            ]},
-          // left
-          { pts: `${cx},${cy} ${cx*0.6},${cy+25} ${cx*0.32},${cy-30} ${cx*0.12},${cy+18} 0,${cy+8}`,
-            delay: 0.07, branches: [
-              `${cx*0.6},${cy+25} ${cx*0.5},${cy+72} ${cx*0.35},${cy+60}`,
-              `${cx*0.32},${cy-30} ${cx*0.22},${cy-70} ${cx*0.12},${cy-58}`,
-            ]},
-        ]
-
-        // Spark particles — short streaks flying outward
-        const sparks = Array.from({ length: 32 }, (_, i) => {
-          const angle = (i / 32) * Math.PI * 2
-          const r1 = 55 + (i % 5) * 18
-          const r2 = r1 + 40 + (i % 7) * 22
-          return {
-            x1: cx + Math.cos(angle) * r1,
-            y1: cy + Math.sin(angle) * r1,
-            x2: cx + Math.cos(angle) * r2,
-            y2: cy + Math.sin(angle) * r2,
-            delay: 0.04 + (i % 8) * 0.018,
-          }
-        })
-
+        // Each bolt: from mascot center → corner/edge target, with jagged midpoints
+        const bolts: { pts: string; delay: number; branch?: string }[] = [
+          // top-left corner
+          {
+            pts: `${cx},${cy} ${cx * 0.6},${cy * 0.5} ${cx * 0.3},${cy * 0.2} 0,0`,
+            delay: 0,
+            branch: `${cx * 0.6},${cy * 0.5} ${cx * 0.45},${cy * 0.35} ${cx * 0.25},${cy * 0.45}`,
+          },
+          // top center
+          {
+            pts: `${cx},${cy} ${cx + 20},${cy * 0.4} ${cx - 15},${cy * 0.1} ${cx + 10},0`,
+            delay: 0.05,
+            branch: `${cx + 20},${cy * 0.4} ${cx + 60},${cy * 0.25} ${cx + 80},${cy * 0.35}`,
+          },
+          // top-right corner
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.7},${cy * 0.25} ${W},0`,
+            delay: 0.02,
+            branch: `${cx + (W - cx) * 0.4},${cy * 0.55} ${cx + (W - cx) * 0.55},${cy * 0.45} ${cx + (W - cx) * 0.65},${cy * 0.6}`,
+          },
+          // right edge mid
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.75},${cy - 20} ${W},${cy + 10}`,
+            delay: 0.08,
+            branch: `${cx + (W - cx) * 0.45},${cy + 30} ${cx + (W - cx) * 0.5},${cy + 80} ${cx + (W - cx) * 0.7},${cy + 60}`,
+          },
+          // bottom-right corner
+          {
+            pts: `${cx},${cy} ${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.6},${cy + (H - cy) * 0.7} ${W},${H}`,
+            delay: 0.03,
+            branch: `${cx + (W - cx) * 0.35},${cy + (H - cy) * 0.4} ${cx + (W - cx) * 0.4},${cy + (H - cy) * 0.55} ${cx + (W - cx) * 0.25},${cy + (H - cy) * 0.6}`,
+          },
+          // bottom center
+          {
+            pts: `${cx},${cy} ${cx - 25},${cy + (H - cy) * 0.45} ${cx + 20},${cy + (H - cy) * 0.75} ${cx - 10},${H}`,
+            delay: 0.06,
+            branch: `${cx - 25},${cy + (H - cy) * 0.45} ${cx - 70},${cy + (H - cy) * 0.5} ${cx - 90},${cy + (H - cy) * 0.65}`,
+          },
+          // bottom-left corner
+          {
+            pts: `${cx},${cy} ${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.35},${cy + (H - cy) * 0.65} 0,${H}`,
+            delay: 0.04,
+            branch: `${cx * 0.65},${cy + (H - cy) * 0.35} ${cx * 0.55},${cy + (H - cy) * 0.5} ${cx * 0.35},${cy + (H - cy) * 0.45}`,
+          },
+          // left edge mid
+          {
+            pts: `${cx},${cy} ${cx * 0.55},${cy - 20} ${cx * 0.25},${cy + 30} 0,${cy + 15}`,
+            delay: 0.07,
+            branch: `${cx * 0.55},${cy - 20} ${cx * 0.45},${cy - 60} ${cx * 0.3},${cy - 50}`,
+          },
+        ];
         return (
           <div className="iq-zap-overlay" aria-hidden="true">
             <svg className="iq-radial-bolts" viewBox={`0 0 ${W} ${H}`}>
               <defs>
-                <filter id="zap-glow-tight" x="-60%" y="-60%" width="220%" height="220%">
-                  <feGaussianBlur stdDeviation="2.5" result="b1" />
-                  <feGaussianBlur stdDeviation="6" result="b2" />
-                  <feMerge><feMergeNode in="b2" /><feMergeNode in="b1" /><feMergeNode in="SourceGraphic" /></feMerge>
+                <filter id="bolt-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3" result="blur1" />
+                  <feGaussianBlur stdDeviation="8" result="blur2" />
+                  <feMerge>
+                    <feMergeNode in="blur2" />
+                    <feMergeNode in="blur1" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
                 </filter>
-                <filter id="zap-glow-wide" x="-120%" y="-120%" width="340%" height="340%">
-                  <feGaussianBlur stdDeviation="16" result="b" />
-                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-                <filter id="zap-spark" x="-80%" y="-80%" width="260%" height="260%">
-                  <feGaussianBlur stdDeviation="1.5" result="b" />
-                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                <filter id="bolt-glow-wide" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="14" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
                 </filter>
               </defs>
-
-              {/* Sparks — gold/orange streaks like the photo's flying embers */}
-              {sparks.map((s, i) => (
-                <line
-                  key={`spark-${i}`}
-                  className="iq-zap-spark"
-                  x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-                  style={{ animationDelay: `${s.delay}s` }}
-                />
-              ))}
-
-              {/* Main bolts */}
               {bolts.map((b, i) => (
-                <g key={`bolt-${i}`}>
-                  {/* Outer glow halo */}
-                  <polyline className="iq-radial-bolt-glow" points={b.pts}
-                    style={{ animationDelay: `${b.delay}s` }} />
-                  {/* Bright core */}
-                  <polyline className="iq-radial-bolt-core" points={b.pts}
-                    style={{ animationDelay: `${b.delay}s` }} />
-                  {/* Branches */}
-                  {b.branches.map((br, j) => (
-                    <polyline key={`br-${i}-${j}`} className="iq-radial-bolt-branch" points={br}
-                      style={{ animationDelay: `${b.delay + 0.05 + j * 0.03}s` }} />
-                  ))}
+                <g key={i} style={{ animationDelay: `${b.delay}s` }}>
+                  {/* Wide glow layer */}
+                  <polyline
+                    className="iq-radial-bolt-glow"
+                    points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }}
+                  />
+                  {/* Core bolt */}
+                  <polyline
+                    className="iq-radial-bolt-core"
+                    points={b.pts}
+                    style={{ animationDelay: `${b.delay}s` }}
+                  />
+                  {b.branch && (
+                    <polyline
+                      className="iq-radial-bolt-branch"
+                      points={b.branch}
+                      style={{ animationDelay: `${b.delay + 0.04}s` }}
+                    />
+                  )}
                 </g>
               ))}
-
-              {/* Explosion shockwave ring — orange/gold like the photo */}
-              <circle className="iq-zap-shockring" cx={cx} cy={cy} r="10" />
-              <circle className="iq-zap-shockring iq-zap-shockring--2" cx={cx} cy={cy} r="10" />
-
-              {/* Origin burst — white-hot core */}
+              {/* Origin burst */}
               <circle className="iq-zap-origin" cx={cx} cy={cy} r="8" />
             </svg>
             <div className="iq-zap-flash" />
           </div>
-        )
+        );
       })()}
 
     <div
