@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { CircleCheck as CheckCircle2, ChevronRight, Cloud, FilePlus, FolderOpen, X } from 'lucide-react'
-import mascot from '../assets/AGENCYIQ_MASCOT_CLEAR.png'
+import mascot from '../assets/AGENCYIQ_MASCOT.png'
 import type { Client, LineOfBusiness, UserProfile } from '../data/crmTypes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -591,14 +591,13 @@ function AddressFields({ data, set, firstFieldRef }: {
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [searched, setSearched] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
 
   const handleStreetChange = (value: string) => {
     set('mailingAddress', value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (value.length < 5) { setSuggestions([]); setShowSuggestions(false); setSearched(false); return }
+    if (value.length < 5) { setSuggestions([]); setShowSuggestions(false); return }
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
@@ -606,11 +605,9 @@ function AddressFields({ data, set, firstFieldRef }: {
         const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
         const results: NominatimResult[] = await res.json()
         setSuggestions(results)
-        setShowSuggestions(true)
-        setSearched(true)
+        setShowSuggestions(results.length > 0)
       } catch {
         setSuggestions([])
-        setSearched(true)
       } finally {
         setLoading(false)
       }
@@ -628,9 +625,9 @@ function AddressFields({ data, set, firstFieldRef }: {
     set('county', a.county ?? '')
     setSuggestions([])
     setShowSuggestions(false)
-    setSearched(false)
   }
 
+  // Close suggestions on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
@@ -654,9 +651,9 @@ function AddressFields({ data, set, firstFieldRef }: {
             autoComplete="off"
           />
           {loading && <span className="addr-loading-indicator" aria-label="Searching" />}
-          {showSuggestions && (
+          {showSuggestions && suggestions.length > 0 && (
             <ul className="addr-suggestions" role="listbox">
-              {suggestions.length > 0 ? suggestions.map((r) => (
+              {suggestions.map((r) => (
                 <li
                   key={r.place_id}
                   role="option"
@@ -665,9 +662,7 @@ function AddressFields({ data, set, firstFieldRef }: {
                 >
                   {r.display_name}
                 </li>
-              )) : searched && !loading ? (
-                <li className="addr-no-results">No matches found — enter address manually below.</li>
-              ) : null}
+              ))}
             </ul>
           )}
         </div>

@@ -70,16 +70,7 @@ export function startHeartbeat(userId: string, onKicked: () => void): () => void
     await heartbeat(userId)
   }
 
-  // Register this session first, then begin periodic validation.
-  // This ensures the DB row exists before the first validateSession check.
-  registerSession(userId).then(() => {
-    if (active) {
-      tick()
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      intervalRef = setInterval(tick, 60_000)
-    }
-  })
-
-  let intervalRef: ReturnType<typeof setInterval>
-  return () => { active = false; clearInterval(intervalRef) }
+  tick() // first check immediately
+  const id = setInterval(tick, 60_000)
+  return () => { active = false; clearInterval(id) }
 }

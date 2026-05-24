@@ -264,7 +264,7 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
           <div className="lp-section-head">
             <span className="lp-kicker lp-kicker--dark">Simple, transparent pricing</span>
             <h2>Invest in your agency's growth</h2>
-            <p>One flat base rate. Additional users are available at a simple, transparent add-on price — no surprise markups or hidden fees.</p>
+            <p>One flat rate per agency. No per-user traps, no hidden fees. Just the tools you need at a price that makes sense.</p>
           </div>
 
           <div className="lp-plans-grid">
