@@ -1,53 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, X } from 'lucide-react'
+import { CircleCheck as CheckCircle2, ChevronRight, Cloud, FilePlus, FolderOpen, X } from 'lucide-react'
 import mascot from '../assets/AgencyIQ_mascot.png'
 import type { Client, LineOfBusiness, UserProfile } from '../data/crmTypes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ClientType = 'Personal' | 'Business'
+type PostSaveAction = 'add-policy' | 'sync-carrier' | 'later'
 
 type WizardData = {
   clientType: ClientType
   // Personal identity
-  firstName: string
-  middleName: string
-  lastName: string
-  suffix: string
-  gender: string
-  maritalStatus: string
-  dob: string
-  ssnRef: string
-  driverLicenseNumber: string
-  driverLicenseState: string
+  firstName: string; middleName: string; lastName: string; suffix: string
+  gender: string; maritalStatus: string; dob: string; ssnRef: string
+  driverLicenseNumber: string; driverLicenseState: string
   // Business identity
-  businessName: string
-  dbaName: string
-  businessType: string
-  taxId: string
-  yearsInBusiness: string
-  numberOfEmployees: string
-  annualRevenue: string
+  businessName: string; dbaName: string; businessType: string; taxId: string
+  yearsInBusiness: string; numberOfEmployees: string; annualRevenue: string
   // Contact
-  primaryContact: string
-  email: string
-  phone: string
-  alternatePhone: string
+  primaryContact: string; email: string; phone: string; alternatePhone: string
   preferredContactMethod: string
   // Address
-  mailingAddress: string
-  city: string
-  state: string
-  zip: string
-  county: string
-  physicalAddress: string
-  website: string
-  // Assignment & policy
-  lineOfBusiness: LineOfBusiness
-  accountStatus: string
-  assignedProducerId: string
-  assignedCsrId: string
-  billingMethod: string
-  notes: string
+  mailingAddress: string; city: string; state: string; zip: string
+  county: string; physicalAddress: string; website: string
+  // Assignment
+  lineOfBusiness: LineOfBusiness; accountStatus: string
+  assignedProducerId: string; assignedCsrId: string; billingMethod: string; notes: string
 }
 
 const emptyData = (): WizardData => ({
@@ -65,43 +42,38 @@ const emptyData = (): WizardData => ({
   assignedProducerId: '', assignedCsrId: '', billingMethod: '', notes: '',
 })
 
-// ─── Step definitions ─────────────────────────────────────────────────────────
-type Step = {
-  id: string
-  label: string
-  mascotTip: string
-  fields: string[]
-}
+// ─── Step definitions — mascot tips are pure agent coaching, no tech jargon ──
+type Step = { id: string; label: string; mascotTip: string; fields: string[] }
 
 const PERSONAL_STEPS: Step[] = [
   {
     id: 'identity',
     label: 'Personal Identity',
-    mascotTip: "Let's start with your client's legal name and key identifying info — this matches exactly what carriers use for IVANS downloads.",
+    mascotTip: "Start with the client's full legal name exactly as it appears on their ID. First, middle, and last name are all needed for policy applications. Date of birth is required for most personal lines quotes.",
     fields: ['firstName', 'middleName', 'lastName', 'suffix', 'dob', 'gender', 'maritalStatus'],
   },
   {
     id: 'sensitive',
     label: 'ID & License',
-    mascotTip: "Only the last 4 digits of SSN are stored here — never the full number. Driver's license info helps carriers match records in ACORD files.",
+    mascotTip: "Only store the last 4 digits of the SSN here — never the full number. The driver's license number and state are needed for auto quotes and MVR checks. If the client doesn't have it handy, you can skip and add it later.",
     fields: ['ssnRef', 'driverLicenseNumber', 'driverLicenseState'],
   },
   {
     id: 'contact',
     label: 'Contact Info',
-    mascotTip: 'How should the agent reach this client? Email and phone sync into outreach workflows for renewals and follow-ups.',
+    mascotTip: "Add the best way to reach this client. A cell phone and email are ideal. If they prefer texts or calls at a specific number, note that here so the whole team knows how to reach them.",
     fields: ['email', 'phone', 'alternatePhone', 'preferredContactMethod'],
   },
   {
     id: 'address',
     label: 'Address',
-    mascotTip: 'The mailing address is the primary address used on policies. Physical address is only needed if it differs — important for homeowners and commercial.',
+    mascotTip: "The mailing address is where policy documents and bills get sent. If the client's property address is different — like a rental home or second property — add that as the physical address too.",
     fields: ['mailingAddress', 'city', 'state', 'zip', 'county', 'physicalAddress'],
   },
   {
     id: 'assignment',
     label: 'Assignment & Billing',
-    mascotTip: 'Assign this client to a producer and CSR, select their line of business, and set default billing preferences for their policies.',
+    mascotTip: "Assign this client to the right producer and CSR on your team. The line of business helps filter them in your dashboard. You can set a default billing preference or leave it blank until the first policy is added.",
     fields: ['lineOfBusiness', 'accountStatus', 'assignedProducerId', 'assignedCsrId', 'billingMethod', 'notes'],
   },
 ]
@@ -110,54 +82,53 @@ const BUSINESS_STEPS: Step[] = [
   {
     id: 'identity',
     label: 'Business Identity',
-    mascotTip: "For commercial clients, the legal business name and EIN are what carriers use to match records in IVANS downloads and ACORD XML files.",
+    mascotTip: "Use the full legal business name as registered — this goes on all policies. The EIN is needed for most commercial applications. If they operate under a trade name, add that as the DBA.",
     fields: ['businessName', 'dbaName', 'businessType', 'taxId', 'yearsInBusiness', 'numberOfEmployees', 'annualRevenue', 'website'],
   },
   {
     id: 'contact',
     label: 'Primary Contact',
-    mascotTip: "Who at the business is the main point of contact? This person receives renewal notices, billing reminders, and policy documents.",
+    mascotTip: "Who is your main point of contact at this business? This is the person who signs applications, receives policy documents, and answers underwriting questions. Get their direct email and phone if possible.",
     fields: ['primaryContact', 'email', 'phone', 'alternatePhone', 'preferredContactMethod'],
   },
   {
     id: 'address',
     label: 'Business Address',
-    mascotTip: "The mailing address goes on all policy documents. The physical address matters for general liability, BOP, and workers' comp underwriting.",
+    mascotTip: "The mailing address is for bills and correspondence. The physical location is where the business actually operates — underwriters need this for commercial policies. If there are multiple locations, add the main one here and note the rest.",
     fields: ['mailingAddress', 'city', 'state', 'zip', 'county', 'physicalAddress'],
   },
   {
     id: 'assignment',
     label: 'Assignment & Billing',
-    mascotTip: "Assign this account to your team and set the default billing method. You can change these later without affecting existing policies.",
+    mascotTip: "Assign this account to your producer and service team. For commercial accounts, choose 'Commercial' as the line of business. You can add billing preferences now or once the first policy is written.",
     fields: ['lineOfBusiness', 'accountStatus', 'assignedProducerId', 'assignedCsrId', 'billingMethod', 'notes'],
   },
 ]
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 export function NewClientWizard({
-  users,
-  onClose,
-  onSave,
+  users, onClose, onSave,
 }: {
   users: UserProfile[]
   onClose: () => void
-  onSave: (data: Partial<Client>) => void
+  onSave: (data: Partial<Client>, nextAction: PostSaveAction) => void
 }) {
   const [data, setData] = useState<WizardData>(emptyData)
-  const [stepIndex, setStepIndex] = useState(-1) // -1 = type selector
+  // -1 = type selector, steps.length = "what next?" completion screen
+  const [stepIndex, setStepIndex] = useState(-1)
   const [mascotState, setMascotState] = useState<'wave' | 'talk' | 'idle'>('wave')
   const [tipVisible, setTipVisible] = useState(true)
   const firstFieldRef = useRef<HTMLInputElement | HTMLSelectElement | null>(null)
 
   const steps = data.clientType === 'Personal' ? PERSONAL_STEPS : BUSINESS_STEPS
   const isTypeSelect = stepIndex === -1
-  const currentStep = isTypeSelect ? null : steps[stepIndex]
-  const isLastStep = stepIndex === steps.length - 1
+  const isCompletion = stepIndex === steps.length
+  const currentStep = (!isTypeSelect && !isCompletion) ? steps[stepIndex] : null
+  const isLastFormStep = stepIndex === steps.length - 1
 
   const set = (key: keyof WizardData, val: string) =>
     setData((d) => ({ ...d, [key]: val }))
 
-  // Animate mascot and tip when step changes
   useEffect(() => {
     setMascotState('talk')
     setTipVisible(false)
@@ -166,18 +137,16 @@ export function NewClientWizard({
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [stepIndex])
 
-  // Focus first field on step change
   useEffect(() => {
-    if (stepIndex >= 0) {
+    if (stepIndex >= 0 && !isCompletion) {
       const timer = setTimeout(() => firstFieldRef.current?.focus(), 200)
       return () => clearTimeout(timer)
     }
-  }, [stepIndex])
+  }, [stepIndex, isCompletion])
 
   const selectType = (type: ClientType) => {
     setData((d) => ({
-      ...d,
-      clientType: type,
+      ...d, clientType: type,
       lineOfBusiness: type === 'Business' ? 'Commercial' : 'Personal lines',
     }))
     setStepIndex(0)
@@ -185,7 +154,7 @@ export function NewClientWizard({
   }
 
   const canAdvance = (): boolean => {
-    if (isTypeSelect) return false
+    if (isTypeSelect || isCompletion) return false
     const step = currentStep!
     if (step.id === 'identity') {
       return data.clientType === 'Personal'
@@ -195,13 +164,13 @@ export function NewClientWizard({
     return true
   }
 
-  const handleSave = () => {
+  const buildClientPayload = (): Partial<Client> => {
     const isPersonal = data.clientType === 'Personal'
     const displayName = isPersonal
       ? [data.firstName, data.middleName, data.lastName, data.suffix].filter(Boolean).join(' ').trim()
       : data.businessName.trim()
 
-    const client: Partial<Client> = {
+    return {
       clientType: data.clientType,
       name: displayName,
       primaryContact: isPersonal ? displayName : data.primaryContact,
@@ -243,35 +212,46 @@ export function NewClientWizard({
       health: 'Strong',
       clientSince: new Date().toISOString().slice(0, 10),
     }
-    onSave(client)
   }
 
-  const progress = stepIndex === -1 ? 0 : Math.round(((stepIndex + 1) / steps.length) * 100)
+  // Advance to completion screen (saves the client)
+  const handleAdvanceToCompletion = () => {
+    setStepIndex(steps.length) // completion screen
+    setMascotState('wave')
+  }
+
+  const handleChoose = (action: PostSaveAction) => {
+    onSave(buildClientPayload(), action)
+  }
+
+  const clientDisplayName = data.clientType === 'Personal'
+    ? [data.firstName, data.lastName].filter(Boolean).join(' ') || 'New Client'
+    : data.businessName || 'New Business'
+
+  const progress = stepIndex <= 0 ? 0 : Math.round((stepIndex / steps.length) * 100)
+
+  const tipText = isTypeSelect
+    ? "Hi! I'm your AgencyIQ assistant. Let's create a new client folder. First — is this a personal or business client?"
+    : isCompletion
+    ? `${clientDisplayName}'s folder is ready! What would you like to do next?`
+    : currentStep?.mascotTip ?? ''
 
   return (
     <div className="wizard-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="wizard-shell" role="dialog" aria-modal="true" aria-label="New Client Wizard">
 
-        {/* Mascot column */}
+        {/* ── Left: mascot column ─────────────────────────────────── */}
         <div className="wizard-mascot-col">
           <div className={`wizard-mascot-wrap wizard-mascot--${mascotState}`}>
             <img src={mascot} alt="AgencyIQ assistant" className="wizard-mascot-img" />
           </div>
-          {!isTypeSelect && (
-            <div className={`wizard-tip-bubble ${tipVisible ? 'wizard-tip-bubble--visible' : ''}`}>
-              <div className="wizard-tip-arrow" />
-              <p>{currentStep?.mascotTip}</p>
-            </div>
-          )}
-          {isTypeSelect && (
-            <div className={`wizard-tip-bubble wizard-tip-bubble--intro ${tipVisible ? 'wizard-tip-bubble--visible' : ''}`}>
-              <div className="wizard-tip-arrow" />
-              <p>Hi! I'm your AgencyIQ assistant. Let's set up a new client folder. First — is this a personal or business client?</p>
-            </div>
-          )}
 
-          {/* Step progress */}
-          {!isTypeSelect && (
+          <div className={`wizard-tip-bubble ${tipVisible ? 'wizard-tip-bubble--visible' : ''} ${isTypeSelect ? 'wizard-tip-bubble--intro' : ''} ${isCompletion ? 'wizard-tip-bubble--success' : ''}`}>
+            <div className="wizard-tip-arrow" />
+            <p>{tipText}</p>
+          </div>
+
+          {!isTypeSelect && !isCompletion && (
             <div className="wizard-progress">
               <div className="wizard-progress-bar">
                 <div className="wizard-progress-fill" style={{ width: `${progress}%` }} />
@@ -283,7 +263,7 @@ export function NewClientWizard({
                     key={s.id}
                     type="button"
                     className={`wizard-step-dot ${i === stepIndex ? 'wizard-step-dot--active' : i < stepIndex ? 'wizard-step-dot--done' : ''}`}
-                    onClick={() => i < stepIndex && setStepIndex(i)}
+                    onClick={() => i < stepIndex ? setStepIndex(i) : undefined}
                     title={s.label}
                   >
                     {i < stepIndex ? '✓' : i + 1}
@@ -293,17 +273,28 @@ export function NewClientWizard({
               </div>
             </div>
           )}
+
+          {isCompletion && (
+            <div className="wizard-completion-check">
+              <CheckCircle2 size={32} />
+              <span>Folder created</span>
+            </div>
+          )}
         </div>
 
-        {/* Form column */}
+        {/* ── Right: form column ──────────────────────────────────── */}
         <div className="wizard-form-col">
           <div className="wizard-form-header">
             <div>
               <p className="wizard-eyebrow">
-                {isTypeSelect ? 'New Client Folder' : `${data.clientType} Client · ${currentStep?.label}`}
+                {isTypeSelect ? 'New Client Folder'
+                  : isCompletion ? `${clientDisplayName} · Folder Ready`
+                  : `${data.clientType} Client · ${currentStep?.label}`}
               </p>
               <h2 className="wizard-title">
-                {isTypeSelect ? 'Choose client type' : currentStep?.label}
+                {isTypeSelect ? 'Choose client type'
+                  : isCompletion ? "What would you like to do next?"
+                  : currentStep?.label}
               </h2>
             </div>
             <button className="icon-button wizard-close" type="button" onClick={onClose} aria-label="Close">
@@ -312,34 +303,64 @@ export function NewClientWizard({
           </div>
 
           <div className="wizard-form-body">
+
             {/* ── Type selector ─────────────────────────────────── */}
             {isTypeSelect && (
               <div className="wizard-type-selector">
-                <button
-                  className="wizard-type-card"
-                  type="button"
-                  onClick={() => selectType('Personal')}
-                >
+                <button className="wizard-type-card" type="button" onClick={() => selectType('Personal')}>
                   <div className="wizard-type-icon">👤</div>
-                  <strong>Personal Lines</strong>
-                  <span>Individual or household client — auto, home, life, umbrella</span>
+                  <div className="wizard-type-text">
+                    <strong>Personal Lines</strong>
+                    <span>Individual or household — auto, home, life, umbrella</span>
+                  </div>
                   <div className="wizard-type-arrow"><ChevronRight size={18} /></div>
                 </button>
-                <button
-                  className="wizard-type-card"
-                  type="button"
-                  onClick={() => selectType('Business')}
-                >
+                <button className="wizard-type-card" type="button" onClick={() => selectType('Business')}>
                   <div className="wizard-type-icon">🏢</div>
-                  <strong>Business / Commercial</strong>
-                  <span>Company, LLC, partnership, or non-profit — BOP, GL, WC, commercial auto</span>
+                  <div className="wizard-type-text">
+                    <strong>Business / Commercial</strong>
+                    <span>Company, LLC, partnership, non-profit — BOP, GL, WC, commercial auto</span>
+                  </div>
                   <div className="wizard-type-arrow"><ChevronRight size={18} /></div>
                 </button>
               </div>
             )}
 
+            {/* ── Completion / "What next?" screen ──────────────── */}
+            {isCompletion && (
+              <div className="wizard-next-actions">
+                <p className="wizard-next-intro">
+                  The client folder for <strong>{clientDisplayName}</strong> has been created. Choose what to do next:
+                </p>
+                <button className="wizard-next-card wizard-next-card--primary" type="button" onClick={() => handleChoose('add-policy')}>
+                  <div className="wizard-next-icon"><FilePlus size={24} /></div>
+                  <div className="wizard-next-text">
+                    <strong>Add a Policy Now</strong>
+                    <span>Enter a new policy manually — carrier, type, premium, dates, and coverage</span>
+                  </div>
+                  <ChevronRight size={18} className="wizard-next-chevron" />
+                </button>
+                <button className="wizard-next-card" type="button" onClick={() => handleChoose('sync-carrier')}>
+                  <div className="wizard-next-icon"><Cloud size={24} /></div>
+                  <div className="wizard-next-text">
+                    <strong>Sync from Carrier</strong>
+                    <span>Pull existing policy data in from the IVANS download center</span>
+                  </div>
+                  <ChevronRight size={18} className="wizard-next-chevron" />
+                </button>
+                <button className="wizard-next-card wizard-next-card--muted" type="button" onClick={() => handleChoose('later')}>
+                  <div className="wizard-next-icon"><FolderOpen size={24} /></div>
+                  <div className="wizard-next-text">
+                    <strong>Open the Folder</strong>
+                    <span>Go to the client folder now and add policies later</span>
+                  </div>
+                  <ChevronRight size={18} className="wizard-next-chevron" />
+                </button>
+              </div>
+            )}
+
             {/* ── Personal: Identity ────────────────────────────── */}
-            {!isTypeSelect && data.clientType === 'Personal' && currentStep?.id === 'identity' && (
+            {currentStep?.id === 'identity' && data.clientType === 'Personal' && (
               <div className="wizard-fields">
                 <WField label="First Name *" full={false}>
                   <input ref={firstFieldRef as React.RefObject<HTMLInputElement>} value={data.firstName} onChange={(e) => set('firstName', e.target.value)} placeholder="Legal first name" autoComplete="given-name" />
@@ -375,18 +396,18 @@ export function NewClientWizard({
                     <option>Domestic Partner</option>
                   </select>
                 </WField>
-                <WField label="DBA / Household Name" full={false}>
+                <WField label="Household / DBA Name" full={false}>
                   <input value={data.dbaName} onChange={(e) => set('dbaName', e.target.value)} placeholder="Optional" />
                 </WField>
               </div>
             )}
 
             {/* ── Personal: SSN & License ───────────────────────── */}
-            {!isTypeSelect && data.clientType === 'Personal' && currentStep?.id === 'sensitive' && (
+            {currentStep?.id === 'sensitive' && data.clientType === 'Personal' && (
               <div className="wizard-fields">
                 <div className="wizard-sensitive-note">
                   <span className="wizard-lock-icon">🔒</span>
-                  <p>Only the last 4 digits of SSN are stored in this CRM. Never enter a full SSN. Full SSN is handled through your carrier's secure portal only.</p>
+                  <p>Only store the last 4 digits of the client's SSN here — never the full number. For full SSN collection, use your carrier's secure application portal.</p>
                 </div>
                 <WField label="SSN — Last 4 Digits Only" full={false}>
                   <input
@@ -411,29 +432,25 @@ export function NewClientWizard({
             )}
 
             {/* ── Personal: Contact ─────────────────────────────── */}
-            {!isTypeSelect && data.clientType === 'Personal' && currentStep?.id === 'contact' && (
-              <ContactFields
-                data={data} set={set}
-                firstFieldRef={firstFieldRef as React.RefObject<HTMLInputElement>}
-                showPrimaryContact={false}
-              />
+            {currentStep?.id === 'contact' && data.clientType === 'Personal' && (
+              <ContactFields data={data} set={set} firstFieldRef={firstFieldRef as React.RefObject<HTMLInputElement>} showPrimaryContact={false} />
             )}
 
-            {/* ── Personal: Address ─────────────────────────────── */}
-            {!isTypeSelect && currentStep?.id === 'address' && (
+            {/* ── Address (both types) ──────────────────────────── */}
+            {currentStep?.id === 'address' && (
               <AddressFields data={data} set={set} firstFieldRef={firstFieldRef as React.RefObject<HTMLInputElement>} />
             )}
 
-            {/* ── Personal / Business: Assignment ──────────────── */}
-            {!isTypeSelect && currentStep?.id === 'assignment' && (
+            {/* ── Assignment (both types) ───────────────────────── */}
+            {currentStep?.id === 'assignment' && (
               <AssignmentFields data={data} set={set} users={users} firstFieldRef={firstFieldRef as React.RefObject<HTMLSelectElement>} />
             )}
 
             {/* ── Business: Identity ────────────────────────────── */}
-            {!isTypeSelect && data.clientType === 'Business' && currentStep?.id === 'identity' && (
+            {currentStep?.id === 'identity' && data.clientType === 'Business' && (
               <div className="wizard-fields">
                 <WField label="Legal Business Name *" full>
-                  <input ref={firstFieldRef as React.RefObject<HTMLInputElement>} value={data.businessName} onChange={(e) => set('businessName', e.target.value)} placeholder="e.g. Sunrise Bakery LLC" autoFocus />
+                  <input ref={firstFieldRef as React.RefObject<HTMLInputElement>} value={data.businessName} onChange={(e) => set('businessName', e.target.value)} placeholder="e.g. Sunrise Bakery LLC" />
                 </WField>
                 <WField label="DBA (Doing Business As)" full={false}>
                   <input value={data.dbaName} onChange={(e) => set('dbaName', e.target.value)} placeholder="If different from legal name" />
@@ -465,17 +482,13 @@ export function NewClientWizard({
             )}
 
             {/* ── Business: Contact ─────────────────────────────── */}
-            {!isTypeSelect && data.clientType === 'Business' && currentStep?.id === 'contact' && (
-              <ContactFields
-                data={data} set={set}
-                firstFieldRef={firstFieldRef as React.RefObject<HTMLInputElement>}
-                showPrimaryContact={true}
-              />
+            {currentStep?.id === 'contact' && data.clientType === 'Business' && (
+              <ContactFields data={data} set={set} firstFieldRef={firstFieldRef as React.RefObject<HTMLInputElement>} showPrimaryContact={true} />
             )}
           </div>
 
-          {/* Footer nav */}
-          {!isTypeSelect && (
+          {/* ── Footer ────────────────────────────────────────────── */}
+          {!isTypeSelect && !isCompletion && (
             <div className="wizard-footer">
               <button
                 className="secondary-action"
@@ -485,7 +498,7 @@ export function NewClientWizard({
                 Back
               </button>
               <div className="wizard-footer-right">
-                {!isLastStep ? (
+                {!isLastFormStep ? (
                   <button
                     className="primary-action wizard-next-btn"
                     type="button"
@@ -499,9 +512,9 @@ export function NewClientWizard({
                     className="primary-action wizard-save-btn"
                     type="button"
                     disabled={!canAdvance()}
-                    onClick={handleSave}
+                    onClick={handleAdvanceToCompletion}
                   >
-                    Create Client Folder
+                    Create Folder <ChevronRight size={16} />
                   </button>
                 )}
               </div>
@@ -513,7 +526,7 @@ export function NewClientWizard({
   )
 }
 
-// ─── Shared field sub-components ─────────────────────────────────────────────
+// ─── Shared sub-components ────────────────────────────────────────────────────
 function WField({ label, full, children }: { label: string; full: boolean; children: React.ReactNode }) {
   return (
     <label className={`wizard-field ${full ? 'wizard-field--full' : ''}`}>
@@ -523,9 +536,7 @@ function WField({ label, full, children }: { label: string; full: boolean; child
   )
 }
 
-function ContactFields({
-  data, set, firstFieldRef, showPrimaryContact,
-}: {
+function ContactFields({ data, set, firstFieldRef, showPrimaryContact }: {
   data: WizardData
   set: (k: keyof WizardData, v: string) => void
   firstFieldRef: React.RefObject<HTMLInputElement>
@@ -539,10 +550,7 @@ function ContactFields({
         </WField>
       )}
       <WField label="Email" full={false}>
-        <input
-          ref={showPrimaryContact ? undefined : firstFieldRef}
-          type="email" value={data.email} onChange={(e) => set('email', e.target.value)} placeholder="client@email.com" autoComplete="email"
-        />
+        <input ref={showPrimaryContact ? undefined : firstFieldRef} type="email" value={data.email} onChange={(e) => set('email', e.target.value)} placeholder="client@email.com" autoComplete="email" />
       </WField>
       <WField label="Phone" full={false}>
         <input type="tel" value={data.phone} onChange={(e) => set('phone', e.target.value)} placeholder="(555) 000-0000" autoComplete="tel" />
@@ -560,9 +568,7 @@ function ContactFields({
   )
 }
 
-function AddressFields({
-  data, set, firstFieldRef,
-}: {
+function AddressFields({ data, set, firstFieldRef }: {
   data: WizardData
   set: (k: keyof WizardData, v: string) => void
   firstFieldRef: React.RefObject<HTMLInputElement>
@@ -594,9 +600,7 @@ function AddressFields({
   )
 }
 
-function AssignmentFields({
-  data, set, users, firstFieldRef,
-}: {
+function AssignmentFields({ data, set, users, firstFieldRef }: {
   data: WizardData
   set: (k: keyof WizardData, v: string) => void
   users: UserProfile[]
@@ -646,7 +650,6 @@ function AssignmentFields({
   )
 }
 
-// ─── US States ────────────────────────────────────────────────────────────────
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
   'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',

@@ -973,7 +973,7 @@ function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
   }
 
-  const addClient = (data: Partial<Client>) => {
+  const addClient = (data: Partial<Client>, nextAction?: 'add-policy' | 'sync-carrier' | 'later') => {
     const newClient: Client = {
       id: createRecordId('client'),
       accountId: dataset.agency.id,
@@ -989,11 +989,18 @@ function App() {
       ...data,
     }
     setDataset((current) => ({ ...current, clients: [newClient, ...current.clients] }))
-    setModal(null)
     setSelectedClientId(newClient.id)
     setClientTab('Overview')
-    setActiveView('profile')
+    setModal(null)
     showToast(`Client folder created for ${newClient.name}`)
+    if (nextAction === 'add-policy') {
+      setActiveView('profile')
+      setTimeout(() => setModal('addPolicy'), 50)
+    } else if (nextAction === 'sync-carrier') {
+      setActiveView('ivans')
+    } else {
+      setActiveView('profile')
+    }
   }
 
   const addPolicy = (data: {
@@ -2845,7 +2852,7 @@ function App() {
         <NewClientWizard
           users={dataset.users}
           onClose={() => setModal(null)}
-          onSave={addClient}
+          onSave={(clientData, action) => addClient(clientData, action)}
         />
       )}
 
