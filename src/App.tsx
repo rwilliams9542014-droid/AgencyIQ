@@ -3,8 +3,10 @@ import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as 
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
+import { NewClientWizard } from './components/NewClientWizard'
 import { supabase } from './lib/supabase'
-import type { CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
+import mascotImg from './assets/AgencyIQ_mascot.png'
+import type { Client, CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
 
@@ -971,35 +973,20 @@ function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
   }
 
-  const addClient = (data: {
-    name: string
-    primaryContact: string
-    phone: string
-    email: string
-    lineOfBusiness: string
-    accountStatus: string
-    mailingAddress: string
-    assignedProducerId: string
-    assignedCsrId: string
-  }) => {
-    const newClient = {
+  const addClient = (data: Partial<Client>) => {
+    const newClient: Client = {
       id: createRecordId('client'),
       accountId: dataset.agency.id,
       ownerUserId: dataset.currentUser.id,
-      name: data.name,
-      primaryContact: data.primaryContact,
-      phone: data.phone,
-      email: data.email,
-      lineOfBusiness: data.lineOfBusiness as 'Commercial' | 'Personal lines' | 'Life & health',
-      accountStatus: data.accountStatus as 'Active' | 'Inactive' | 'Prospect',
-      status: 'Client' as const,
-      mailingAddress: data.mailingAddress || undefined,
-      assignedProducerId: data.assignedProducerId || undefined,
-      assignedCsrId: data.assignedCsrId || undefined,
+      name: data.name ?? '',
+      primaryContact: data.primaryContact ?? data.name ?? '',
+      status: 'Client',
+      lineOfBusiness: data.lineOfBusiness ?? 'Personal lines',
       policyCount: 0,
-      annualRevenue: 0,
-      health: 'Strong' as const,
+      annualRevenue: data.annualRevenue ?? 0,
+      health: 'Strong',
       clientSince: new Date().toISOString().slice(0, 10),
+      ...data,
     }
     setDataset((current) => ({ ...current, clients: [newClient, ...current.clients] }))
     setModal(null)
@@ -2763,12 +2750,15 @@ function App() {
       {aiHelpOpen && (
         <aside className="ai-help-panel" aria-label="AgencyIQ AI help">
           <div className="ai-help-header">
-            <div>
-              <span className="ai-kicker">
-                <Bot size={15} aria-hidden="true" />
-                Agent answer assistant
-              </span>
-              <h2>Help explain client questions</h2>
+            <div className="ai-help-mascot-row">
+              <img src={mascotImg} alt="AgencyIQ assistant" className="ai-panel-mascot" />
+              <div>
+                <span className="ai-kicker">
+                  <Bot size={15} aria-hidden="true" />
+                  Agent answer assistant
+                </span>
+                <h2>Help explain client questions</h2>
+              </div>
             </div>
             <button
               className="icon-button"
@@ -2821,16 +2811,17 @@ function App() {
 
           {aiLoading && (
             <div className="ai-loading">
+              <img src={mascotImg} alt="" className="ai-loading-mascot" aria-hidden="true" />
               <span className="ai-loading-dot" /><span className="ai-loading-dot" /><span className="ai-loading-dot" />
-              <span>Generating answer...</span>
+              <span>Thinking…</span>
             </div>
           )}
 
           {aiAnswer && !aiLoading && (
             <div className="ai-answer-panel">
               <div className="ai-answer-header">
-                <Bot size={15} aria-hidden="true" />
-                <strong>Answer</strong>
+                <img src={mascotImg} alt="" className="ai-answer-mascot" aria-hidden="true" />
+                <strong>AgencyIQ says:</strong>
                 <button className="text-button ai-clear-btn" type="button" onClick={() => { setAiAnswer(''); setAiQuery('') }}>
                   Ask another
                 </button>
@@ -2851,7 +2842,7 @@ function App() {
 
       {/* ─── Add Client Modal ─────────────────────────────────── */}
       {modal === 'addClient' && (
-        <AddClientModal
+        <NewClientWizard
           users={dataset.users}
           onClose={() => setModal(null)}
           onSave={addClient}
@@ -3546,81 +3537,6 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
   )
 }
 
-function AddClientModal({ users, onClose, onSave }: {
-  users: UserOption[]
-  onClose: () => void
-  onSave: (data: { name: string; primaryContact: string; phone: string; email: string; lineOfBusiness: string; accountStatus: string; mailingAddress: string; assignedProducerId: string; assignedCsrId: string }) => void
-}) {
-  const [form, setForm] = useState({ name: '', primaryContact: '', phone: '', email: '', lineOfBusiness: 'Personal lines', accountStatus: 'Active', mailingAddress: '', assignedProducerId: '', assignedCsrId: '' })
-  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }))
-  return (
-    <ModalShell title="New Client Folder" onClose={onClose}>
-      <div className="modal-form">
-        <label className="modal-field modal-field--full">
-          <span>Client / Business Name *</span>
-          <input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Acme Corp or Jane Smith" autoFocus />
-        </label>
-        <label className="modal-field">
-          <span>Primary Contact</span>
-          <input value={form.primaryContact} onChange={(e) => set('primaryContact', e.target.value)} placeholder="Contact person's name" />
-        </label>
-        <label className="modal-field">
-          <span>Phone</span>
-          <input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="(555) 000-0000" />
-        </label>
-        <label className="modal-field">
-          <span>Email</span>
-          <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="client@email.com" />
-        </label>
-        <label className="modal-field">
-          <span>Line of Business</span>
-          <select value={form.lineOfBusiness} onChange={(e) => set('lineOfBusiness', e.target.value)}>
-            <option value="Personal lines">Personal Lines</option>
-            <option value="Commercial">Commercial</option>
-            <option value="Life & health">Life & Health</option>
-          </select>
-        </label>
-        <label className="modal-field">
-          <span>Account Status</span>
-          <select value={form.accountStatus} onChange={(e) => set('accountStatus', e.target.value)}>
-            <option value="Active">Active</option>
-            <option value="Prospect">Prospect</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </label>
-        <label className="modal-field modal-field--full">
-          <span>Mailing Address</span>
-          <input value={form.mailingAddress} onChange={(e) => set('mailingAddress', e.target.value)} placeholder="123 Main St, City, State ZIP" />
-        </label>
-        <label className="modal-field">
-          <span>Assigned Producer</span>
-          <select value={form.assignedProducerId} onChange={(e) => set('assignedProducerId', e.target.value)}>
-            <option value="">Unassigned</option>
-            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
-          </select>
-        </label>
-        <label className="modal-field">
-          <span>Assigned CSR</span>
-          <select value={form.assignedCsrId} onChange={(e) => set('assignedCsrId', e.target.value)}>
-            <option value="">Unassigned</option>
-            {users.map((u) => <option value={u.id} key={u.id}>{u.name}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className="modal-footer">
-        <button className="secondary-action" type="button" onClick={onClose}>Cancel</button>
-        <button
-          className="primary-action"
-          type="button"
-          disabled={!form.name.trim()}
-          onClick={() => onSave(form)}
-        >
-          Create Client Folder
-        </button>
-      </div>
-    </ModalShell>
-  )
-}
 
 function ComboInput({ label, value, onChange, options, onAddCustom, placeholder, required, autoFocus }: {
   label: string

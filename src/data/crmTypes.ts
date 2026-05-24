@@ -19,34 +19,62 @@ export type UserProfile = {
   role: UserRole
 }
 
+export type ClientType = 'Personal' | 'Business'
+
 export type Client = {
   id: string
   accountId: string
   ownerUserId: string
-  assignedProducerId?: string
-  assignedCsrId?: string
-  clientSince?: string
-  preferredContactMethod?: 'Phone' | 'Email' | 'Text' | 'Portal'
-  billingMethod?: 'Direct Bill' | 'Agency Bill' | 'Mortgagee/Escrow' | 'Premium Finance'
-  paymentPlan?: string
-  lastContactedAt?: string
-  name: string
+  // ─── Client classification ──────────────────────────────────────
+  clientType?: ClientType           // 'Personal' or 'Business'
+  // ─── Personal identity (IVANS / ACORD required for personal lines)
+  firstName?: string
+  middleName?: string
+  lastName?: string
+  suffix?: string                   // Jr., Sr., III, etc.
+  gender?: 'Male' | 'Female' | 'Non-binary' | 'Prefer not to say'
+  maritalStatus?: 'Single' | 'Married' | 'Divorced' | 'Widowed' | 'Domestic Partner'
+  ssnRef?: string                   // last 4 only stored in UI; full SSN never persisted
+  driverLicenseNumber?: string
+  driverLicenseState?: string
+  // ─── Business identity (ACORD commercial required) ──────────────
   dbaName?: string
+  businessType?: 'LLC' | 'Corporation' | 'S-Corp' | 'Partnership' | 'Sole Proprietor' | 'Non-Profit' | 'Other'
+  taxId?: string                    // EIN for business, reference only for personal
+  yearsInBusiness?: number
+  numberOfEmployees?: number
+  annualRevenue: number
+  // ─── Core identity ───────────────────────────────────────────────
+  name: string                      // display name (full name or business name)
+  primaryContact: string            // person to contact
   status: ClientStatus
   accountStatus?: ClientAccountStatus
   lineOfBusiness: LineOfBusiness
-  primaryContact: string
+  // ─── Contact ─────────────────────────────────────────────────────
   email?: string
   phone?: string
   alternatePhone?: string
+  preferredContactMethod?: 'Phone' | 'Email' | 'Text' | 'Portal'
+  // ─── Address ─────────────────────────────────────────────────────
   mailingAddress?: string
   physicalAddress?: string
+  city?: string
+  state?: string
+  zip?: string
+  county?: string
   website?: string
-  taxId?: string
-  dob?: string
+  // ─── Demographics (personal lines underwriting) ──────────────────
+  dob?: string                      // date of birth YYYY-MM-DD
+  // ─── Assignment & billing ────────────────────────────────────────
+  assignedProducerId?: string
+  assignedCsrId?: string
+  billingMethod?: 'Direct Bill' | 'Agency Bill' | 'Mortgagee/Escrow' | 'Premium Finance'
+  paymentPlan?: string
+  // ─── Metadata ────────────────────────────────────────────────────
+  clientSince?: string
+  lastContactedAt?: string
   notes?: string
   policyCount: number
-  annualRevenue: number
   health: 'Strong' | 'Needs review' | 'At risk'
 }
 
