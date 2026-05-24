@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { CircleCheck as CheckCircle2, ChevronRight, Cloud, FilePlus, FolderOpen, X } from 'lucide-react'
-import mascot from '../assets/AGENCYIQ_MASCOT.png'
+import mascot from '../assets/AGENCYIQ_MASCOT_CLEAR.png'
 import type { Client, LineOfBusiness, UserProfile } from '../data/crmTypes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

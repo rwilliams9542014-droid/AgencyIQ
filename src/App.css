@@ -5615,7 +5615,9 @@ tbody tr:hover {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+  background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
   transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -6062,9 +6064,10 @@ tbody tr:hover {
   height: 56px;
   object-fit: contain;
   flex-shrink: 0;
-  filter: drop-shadow(0 4px 10px rgba(5, 11, 22, 0.2));
-  animation: mascot-float 4s ease-in-out infinite;
   background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
+  animation: mascot-float 4s ease-in-out infinite;
 }
 
 .ai-answer-mascot {
@@ -6072,6 +6075,9 @@ tbody tr:hover {
   height: 32px;
   object-fit: contain;
   flex-shrink: 0;
+  background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
   animation: mascot-talk 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -6117,13 +6123,14 @@ tbody tr:hover {
   height: 32px;
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 1px 4px rgba(5, 11, 22, 0.18));
-  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms;
+  background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .iq-ai-trigger:hover .iq-ai-trigger-mascot {
   transform: scale(1.1) rotate(-4deg);
-  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 50%, transparent));
 }
 
 .iq-ai-trigger--active .iq-ai-trigger-mascot {
@@ -6154,10 +6161,7 @@ tbody tr:hover {
   animation: iq-pulse 3s ease-out 2s 3;
 }
 
-/* ─── Mascot image — transparent PNG, no blend mode needed ──── */
-.wizard-mascot-img {
-  image-rendering: crisp-edges;
-}
+/* mascot PNG uses mix-blend-mode:screen — dissolves black background */
 
 /* ─── Completion / What's next screen ───────────────────────── */
 .wizard-completion-wrap {
@@ -6354,6 +6358,9 @@ tbody tr:hover {
   height: 38px;
   object-fit: contain;
   flex-shrink: 0;
+  background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
   animation: mascot-float 1.8s ease-in-out infinite;
 }
 
@@ -6529,13 +6536,9 @@ tbody tr:hover {
   object-fit: contain;
   display: block;
   background: transparent;
-  /* drop-shadow follows the PNG contour exactly, never a box */
-  filter: drop-shadow(0 6px 16px rgba(5, 11, 22, 0.25));
-  transition: filter 200ms;
-}
-
-.iq-buddy-avatar:hover .iq-buddy-img {
-  filter: drop-shadow(0 4px 18px color-mix(in srgb, var(--accent) 55%, transparent));
+  box-shadow: none;
+  /* screen blend dissolves the black PNG background — robot floats freely */
+  mix-blend-mode: screen;
 }
 
 /* ─── Animation states ─────────────────────────────────────────── */
@@ -6732,5 +6735,53 @@ tbody tr:hover {
   flex: 1;
   overflow-y: auto;
   padding-right: 20px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SESSION KICKED OVERLAY
+   ════════════════════════════════════════════════════════════════ */
+
+.session-kicked-overlay {
+  position: fixed; inset: 0; z-index: 9900;
+  background: rgba(5, 11, 22, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+
+.session-kicked-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 44px 36px;
+  max-width: 400px; width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.32);
+  animation: modal-in 240ms cubic-bezier(.16,1,.3,1);
+}
+
+.session-kicked-mascot {
+  width: 90px; height: 90px;
+  object-fit: contain;
+  background: transparent;
+  box-shadow: none;
+  mix-blend-mode: screen;
+  margin-bottom: 4px;
+}
+
+.session-kicked-panel svg { color: var(--gold); }
+
+.session-kicked-panel h2 {
+  font-size: 20px; font-weight: 800;
+  color: var(--text-strong); margin: 0;
+}
+
+.session-kicked-panel p {
+  font-size: 13.5px; line-height: 1.65;
+  color: var(--text-muted); margin: 0;
+}
+
+.session-kicked-panel .primary-action {
+  margin-top: 8px; width: 100%; justify-content: center;
 }
 
