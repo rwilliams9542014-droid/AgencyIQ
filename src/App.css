@@ -4575,11 +4575,161 @@ tbody tr:hover {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   color: var(--accent-strong);
   font-weight: 820;
+  gap: 6px;
 }
 
 .ivans-launch-btn:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
+}
+
+.ivans-btn-sync-time {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.7;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: 4px;
+}
+
+/* ─── Clients page header actions row ───────────────────────── */
+.clients-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── IVANS global sync note in page context ─────────────────── */
+.ivans-global-sync-note {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ─── Folder card IVANS badge ────────────────────────────────── */
+.folder-card-tab-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.folder-ivans-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.folder-ivans-badge--synced {
+  background: rgba(47, 125, 98, 0.12);
+  color: #2f7d62;
+}
+
+.folder-ivans-badge--renewal {
+  background: rgba(211, 84, 0, 0.12);
+  color: #d35400;
+}
+
+/* IVANS sync time in folder card footer */
+.folder-ivans-sync-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ─── Folder strip IVANS stat ────────────────────────────────── */
+.folder-strip-stat--ivans {
+  border-left: 2px solid rgba(47, 125, 98, 0.3);
+}
+
+.folder-strip-stat--ivans span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #2f7d62;
+}
+
+.folder-strip-stat--ivans strong {
+  color: #2f7d62;
+}
+
+.folder-strip-stat--ivans em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 820;
+  color: #d35400;
+  margin-top: 1px;
+}
+
+.folder-strip-stat--ivans-renewal {
+  border-left-color: rgba(211, 84, 0, 0.4);
+}
+
+.folder-strip-stat--ivans-renewal span,
+.folder-strip-stat--ivans-renewal strong {
+  color: #d35400;
+}
+
+/* ─── Policy card IVANS badge ────────────────────────────────── */
+.policy-ivans-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 820;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.policy-ivans-badge--synced {
+  background: rgba(47, 125, 98, 0.1);
+  color: #2f7d62;
+  border: 1px solid rgba(47, 125, 98, 0.2);
+}
+
+.policy-ivans-badge--renewal {
+  background: rgba(211, 84, 0, 0.1);
+  color: #d35400;
+  border: 1px solid rgba(211, 84, 0, 0.2);
+}
+
+/* IVANS detail row inside policy accordion */
+.policy-ivans-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(47, 125, 98, 0.06);
+  border: 1px solid rgba(47, 125, 98, 0.15);
+  grid-column: 1 / -1;
+}
+
+.policy-ivans-detail-row span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 820;
+  color: #2f7d62;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.policy-ivans-detail-row strong {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* ─── IVANS Panel Container ──────────────────────────────────── */

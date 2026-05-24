@@ -3,6 +3,7 @@ import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as 
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
+import { supabase } from './lib/supabase'
 import type { CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
@@ -26,7 +27,7 @@ type OwnerReport = {
   }[]
 }
 
-type AppView = 'dashboard' | 'clients' | 'profile' | 'leads' | 'renewals'
+type AppView = 'dashboard' | 'clients' | 'profile' | 'leads' | 'renewals' | 'ivans'
 type DashboardWidgetId =
   | 'communications'
   | 'recentActivity'
@@ -581,11 +582,42 @@ function App() {
   const [renewalOutreachModal, setRenewalOutreachModal] = useState<'email' | 'text' | null>(null)
   const [renewalSort, setRenewalSort] = useState<'date' | 'name' | 'carrier' | 'billing'>('date')
   const [renewalPremiumEdits, setRenewalPremiumEdits] = useState<Record<string, string>>({})
+  // IVANS sync tracking: map of policyNumber -> { syncedAt, carrierName, renewalStatus }
+  // keyed by policy number so we can match against CRM policies by number
+  const [ivansSyncMap, setIvansSyncMap] = useState<Record<string, { syncedAt: string; carrierName: string; renewalStatus: string; policyNumber: string }>>({})
+  const [ivansLastGlobalSync, setIvansLastGlobalSync] = useState<string | null>(null)
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(() => {
     try { return JSON.parse(localStorage.getItem('agencyiq-email-templates') ?? 'null') ?? defaultEmailTemplates() } catch { return defaultEmailTemplates() }
   })
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
   const [renewalViewMode, setRenewalViewMode] = useState<'month' | 'range'>('month')
+
+  // Load IVANS sync data from Supabase so client cards show last-synced indicators
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('ivans_policy_sync')
+          .select('policy_number, carrier_name, renewal_status, synced_at, merge_status')
+          .eq('account_id', dataset.agency.id)
+          .order('synced_at', { ascending: false })
+          .limit(500)
+        if (data && data.length > 0) {
+          const map: Record<string, { syncedAt: string; carrierName: string; renewalStatus: string; policyNumber: string }> = {}
+          for (const row of data) {
+            if (!map[row.policy_number]) {
+              map[row.policy_number] = { syncedAt: row.synced_at, carrierName: row.carrier_name, renewalStatus: row.renewal_status, policyNumber: row.policy_number }
+            }
+          }
+          setIvansSyncMap(map)
+          setIvansLastGlobalSync(data[0].synced_at)
+        }
+      } catch (_e) {
+        // Supabase not configured — IVANS sync indicators stay hidden
+      }
+    }
+    load()
+  }, [dataset.agency.id])
 
   useEffect(() => {
     localStorage.setItem('agencyiq-palette', palette)
@@ -1347,7 +1379,7 @@ function App() {
                 className={[
                   'nav-item',
                   (item.label === 'Dashboard' && activeView === 'dashboard') ||
-                  (item.label === 'Clients' && ['clients', 'profile'].includes(activeView)) ||
+                  (item.label === 'Clients' && ['clients', 'profile', 'ivans'].includes(activeView)) ||
                   (item.label === 'Leads' && activeView === 'leads') ||
                   (item.label === 'Renewals' && activeView === 'renewals')
                     ? 'active'
@@ -1603,6 +1635,8 @@ function App() {
             saveRenewalPremium={saveRenewalPremium}
             exportRenewalsCsv={exportRenewalsCsv}
             onOpenClient={(clientId) => { setSelectedClientId(clientId); setClientTab('Policies'); setActiveView('profile') }}
+            onOpenIvans={() => setActiveView('ivans')}
+            ivansLastGlobalSync={ivansLastGlobalSync}
             showToast={showToast}
             currency={currency}
             formatDate={formatDate}
@@ -1724,6 +1758,36 @@ function App() {
               </article>
             </section>
           </section>
+        ) : activeView === 'ivans' ? (
+          <section className="clients-page">
+            <div className="page-heading">
+              <div>
+                <p className="eyebrow">Client folders</p>
+                <h1>IVANS Download Center</h1>
+                <p className="account-context">
+                  Carrier data sync · ACORD file parsing · automated renewal detection
+                  {ivansLastGlobalSync && <span className="ivans-global-sync-note"> · Last sync: {formatDate(ivansLastGlobalSync)}</span>}
+                </p>
+              </div>
+              <button className="secondary-action" type="button" onClick={() => setActiveView('clients')}>
+                <ArrowLeft size={15} /> Back to Clients
+              </button>
+            </div>
+            <IvansPanel
+              accountId={dataset.agency.id}
+              currency={currency}
+              formatDate={formatDate}
+              onMergePolicy={(synced) => {
+                showToast(`Policy ${synced.policy_number} (${synced.insured_name}) accepted — client folder will update on next sync`)
+                // Refresh IVANS sync map so indicators update immediately
+                setIvansSyncMap((prev) => ({
+                  ...prev,
+                  [synced.policy_number]: { syncedAt: synced.synced_at, carrierName: synced.carrier_name, renewalStatus: synced.renewal_status, policyNumber: synced.policy_number },
+                }))
+                setIvansLastGlobalSync(synced.synced_at)
+              }}
+            />
+          </section>
         ) : activeView === 'clients' ? (
           <section className="clients-page">
             <div className="page-heading">
@@ -1732,11 +1796,17 @@ function App() {
                 <h1>Clients</h1>
                 <p className="account-context">
                   {filteredClients.length} client {filteredClients.length === 1 ? 'folder' : 'folders'} on file
+                  {ivansLastGlobalSync && <span className="ivans-global-sync-note"> · IVANS synced {formatDate(ivansLastGlobalSync)}</span>}
                 </p>
               </div>
-              <button className="primary-action" type="button" onClick={() => setModal('addClient')}>
-                + New Client
-              </button>
+              <div className="clients-page-actions">
+                <button className="utility-action ivans-launch-btn" type="button" onClick={() => setActiveView('ivans')}>
+                  <Zap size={15} /> IVANS Sync
+                </button>
+                <button className="primary-action" type="button" onClick={() => setModal('addClient')}>
+                  + New Client
+                </button>
+              </div>
             </div>
 
             <div className="folder-workspace">
@@ -1792,6 +1862,12 @@ function App() {
                   const totalPremium = policies.reduce((total, policy) => total + policy.premium, 0)
                   const hasRenewalDue = dataset.renewals.some((r) => r.clientId === client.id)
                   const status = client.accountStatus ?? client.status
+                  // IVANS sync: check if any of this client's policies appear in the sync map
+                  const clientSyncEntries = policies
+                    .filter((p) => p.policyNumber && ivansSyncMap[p.policyNumber])
+                    .map((p) => ivansSyncMap[p.policyNumber!])
+                  const latestSync = clientSyncEntries.sort((a, b) => b.syncedAt.localeCompare(a.syncedAt))[0]
+                  const hasRenewalPending = clientSyncEntries.some((e) => e.renewalStatus === 'renewal_pending')
                   return (
                     <button
                       className={`folder-card folder-card--${status?.toLowerCase().replace(/\s+/g, '-') ?? 'active'}`}
@@ -1806,7 +1882,15 @@ function App() {
                     >
                       <div className="folder-card-tab">
                         <span className="folder-card-type">{getClientTypeLabel(client.lineOfBusiness)}</span>
-                        <span className={`folder-status-dot folder-status-dot--${status?.toLowerCase().replace(/\s+/g, '-') ?? 'active'}`} aria-hidden="true" />
+                        <div className="folder-card-tab-right">
+                          {latestSync && (
+                            <span className={`folder-ivans-badge ${hasRenewalPending ? 'folder-ivans-badge--renewal' : 'folder-ivans-badge--synced'}`} title={`IVANS synced ${latestSync.syncedAt.slice(0, 10)}`}>
+                              <Zap size={10} />
+                              {hasRenewalPending ? 'Renewal' : 'Synced'}
+                            </span>
+                          )}
+                          <span className={`folder-status-dot folder-status-dot--${status?.toLowerCase().replace(/\s+/g, '-') ?? 'active'}`} aria-hidden="true" />
+                        </div>
                       </div>
                       <div className="folder-card-body">
                         <div className="folder-card-identity">
@@ -1830,10 +1914,16 @@ function App() {
                         </div>
                         <div className="folder-card-footer">
                           <span className="folder-card-phone">{client.phone ?? client.email ?? 'No contact on file'}</span>
-                          <span className="folder-open-cta">
-                            Open folder
-                            <ChevronRight size={14} aria-hidden="true" />
-                          </span>
+                          {latestSync ? (
+                            <span className="folder-ivans-sync-time">
+                              <Zap size={11} /> IVANS {latestSync.syncedAt.slice(0, 10)}
+                            </span>
+                          ) : (
+                            <span className="folder-open-cta">
+                              Open folder
+                              <ChevronRight size={14} aria-hidden="true" />
+                            </span>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -1934,6 +2024,22 @@ function App() {
                   <span>Last Contacted</span>
                   <strong>{selectedClientLastContacted}</strong>
                 </div>
+                {(() => {
+                  const clientPolicies = dataset.policies.filter((p) => p.clientId === selectedClient.id)
+                  const syncEntries = clientPolicies
+                    .filter((p) => p.policyNumber && ivansSyncMap[p.policyNumber])
+                    .map((p) => ivansSyncMap[p.policyNumber!])
+                  const latest = syncEntries.sort((a, b) => b.syncedAt.localeCompare(a.syncedAt))[0]
+                  if (!latest) return null
+                  const hasRenewal = syncEntries.some((e) => e.renewalStatus === 'renewal_pending')
+                  return (
+                    <div className={`folder-strip-stat folder-strip-stat--ivans ${hasRenewal ? 'folder-strip-stat--ivans-renewal' : ''}`}>
+                      <span><Zap size={11} /> IVANS Last Sync</span>
+                      <strong>{formatDate(latest.syncedAt)}</strong>
+                      {hasRenewal && <em>Renewal pending</em>}
+                    </div>
+                  )
+                })()}
               </div>
 
               <div className="open-folder-actions">
@@ -2071,6 +2177,7 @@ function App() {
                       )
                     })
                     const shouldShowXDate = ['Expired', 'Non-Renewed'].includes(policy.status) && !hasActiveReplacement
+                    const ivansEntry = policy.policyNumber ? ivansSyncMap[policy.policyNumber] : null
                     return (
                       <details className="policy-card policy-accordion" key={policy.id}>
                         <summary>
@@ -2080,6 +2187,12 @@ function App() {
                               <span className="status-pill">{policy.status}</span>
                               {shouldShowXDate && (
                                 <span className="status-pill xdate-pill">X-Date</span>
+                              )}
+                              {ivansEntry && (
+                                <span className={`policy-ivans-badge ${ivansEntry.renewalStatus === 'renewal_pending' ? 'policy-ivans-badge--renewal' : 'policy-ivans-badge--synced'}`} title={`Last IVANS sync: ${ivansEntry.syncedAt.slice(0, 10)}`}>
+                                  <Zap size={10} />
+                                  {ivansEntry.renewalStatus === 'renewal_pending' ? 'IVANS: Renewal' : `IVANS ${ivansEntry.syncedAt.slice(0, 10)}`}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -2113,6 +2226,12 @@ function App() {
                             <div><span>Mortgagee / lienholder</span><strong>{policy.mortgageeOrLienholder ?? 'None on file'}</strong></div>
                             <div><span>Policy status</span><strong>{policy.status}</strong></div>
                             <div><span>Producer / CSR</span><strong>{getUserName(dataset, policy.producerUserId ?? '')} / {getUserName(dataset, policy.csrUserId ?? '')}</strong></div>
+                            {ivansEntry && (
+                              <div className="policy-ivans-detail-row">
+                                <span><Zap size={11} /> IVANS Last Sync</span>
+                                <strong>{formatDate(ivansEntry.syncedAt)} · {ivansEntry.carrierName || 'Carrier'}{ivansEntry.renewalStatus === 'renewal_pending' ? ' — Renewal pending' : ''}</strong>
+                              </div>
+                            )}
                           </div>
                           <div className="billing-block">
                             <h2>Billing & Payment</h2>
@@ -2861,7 +2980,7 @@ type RenewalPolicyItem = {
 }
 
 function RenewalCenter({
-  renewalPolicies, allRenewalPolicies, accountId, dataset: _dataset, todayIso: _todayIso,
+  renewalPolicies, allRenewalPolicies, accountId: _accountId, dataset: _dataset, todayIso: _todayIso,
   renewalViewMode, setRenewalViewMode,
   renewalMonth, setRenewalMonth,
   renewalDateFrom, setRenewalDateFrom,
@@ -2874,7 +2993,8 @@ function RenewalCenter({
   renewalSort, setRenewalSort,
   renewalPremiumEdits, setRenewalPremiumEdits, saveRenewalPremium,
   exportRenewalsCsv,
-  onOpenClient, showToast,
+  onOpenClient, onOpenIvans, ivansLastGlobalSync,
+  showToast,
   currency, formatDate, formatFullDate: _formatFullDate, getUserName: _getUserName,
 }: {
   renewalPolicies: RenewalPolicyItem[]
@@ -2911,6 +3031,8 @@ function RenewalCenter({
   saveRenewalPremium: (policyId: string, val: string) => void
   exportRenewalsCsv: (items: RenewalPolicyItem[]) => void
   onOpenClient: (clientId: string) => void
+  onOpenIvans: () => void
+  ivansLastGlobalSync: string | null
   showToast: (msg: string) => void
   currency: Intl.NumberFormat
   formatDate: (d: string) => string
@@ -2918,7 +3040,6 @@ function RenewalCenter({
   getUserName: (id: string) => string
 }) {
   const [showTemplates, setShowTemplates] = useState(false)
-  const [showIvans, setShowIvans] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const allIds = renewalPolicies.map((r) => r.policy.id)
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id))
@@ -2939,31 +3060,6 @@ function RenewalCenter({
   const autopayCount = allRenewalPolicies.filter((r) => r.isAutopay).length
 
   const monthLabel = new Date(`${renewalMonth}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-
-  if (showIvans) {
-    return (
-      <section className="renewal-center">
-        <div className="renewal-topbar">
-          <div>
-            <p className="eyebrow">Renewal Command Center</p>
-            <h1>IVANS Download Center</h1>
-            <p className="account-context">Carrier data sync · ACORD file parsing · automated renewal detection</p>
-          </div>
-          <button className="secondary-action" type="button" onClick={() => setShowIvans(false)}>
-            <ArrowLeft size={16} /> Back to Renewals
-          </button>
-        </div>
-        <IvansPanel
-          accountId={accountId}
-          currency={currency}
-          formatDate={formatDate}
-          onMergePolicy={(synced) => {
-            showToast(`Policy ${synced.policy_number} (${synced.insured_name}) accepted from IVANS`)
-          }}
-        />
-      </section>
-    )
-  }
 
   if (showTemplates) {
     return (
@@ -3031,8 +3127,10 @@ function RenewalCenter({
           </p>
         </div>
         <div className="renewal-header-actions">
-          <button className="utility-action ivans-launch-btn" type="button" onClick={() => setShowIvans(true)}>
-            <Zap size={15} /> IVANS Sync
+          <button className="utility-action ivans-launch-btn" type="button" onClick={onOpenIvans} title="Go to IVANS Sync in Clients">
+            <Zap size={15} />
+            IVANS Sync
+            {ivansLastGlobalSync && <span className="ivans-btn-sync-time">{ivansLastGlobalSync.slice(0, 10)}</span>}
           </button>
           <button className="utility-action" type="button" onClick={() => exportRenewalsCsv(someSelected ? renewalPolicies.filter((r) => selectedIds.has(r.policy.id)) : renewalPolicies)}>
             <CircleDollarSign size={15} /> Export {someSelected ? `${selectedIds.size} selected` : 'all'}
