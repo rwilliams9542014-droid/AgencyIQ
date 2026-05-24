@@ -3709,17 +3709,17 @@ tbody tr:hover {
 /* KPI Strip */
 .renewal-kpi-strip {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .renewal-kpi {
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 18px;
+  padding: 13px 16px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-warm);
@@ -3727,23 +3727,17 @@ tbody tr:hover {
 }
 
 .renewal-kpi:nth-child(1) { animation-delay: 40ms }
-.renewal-kpi:nth-child(2) { animation-delay: 80ms }
-.renewal-kpi:nth-child(3) { animation-delay: 120ms }
-.renewal-kpi:nth-child(4) { animation-delay: 160ms }
-.renewal-kpi:nth-child(5) { animation-delay: 200ms }
+.renewal-kpi:nth-child(2) { animation-delay: 70ms }
+.renewal-kpi:nth-child(3) { animation-delay: 100ms }
+.renewal-kpi:nth-child(4) { animation-delay: 130ms }
+.renewal-kpi:nth-child(5) { animation-delay: 160ms }
+.renewal-kpi:nth-child(6) { animation-delay: 190ms }
 
-.renewal-kpi svg {
-  flex-shrink: 0;
-  opacity: 0.8;
-}
-
-.renewal-kpi div {
-  display: grid;
-  gap: 2px;
-}
+.renewal-kpi svg { flex-shrink: 0; opacity: 0.85; }
+.renewal-kpi div { display: grid; gap: 2px; }
 
 .renewal-kpi strong {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 820;
   color: var(--text-strong);
   line-height: 1.1;
@@ -3757,17 +3751,69 @@ tbody tr:hover {
   letter-spacing: 0.05em;
 }
 
-.renewal-kpi--urgent { border-color: color-mix(in srgb, #c0392b 30%, var(--border)); }
-.renewal-kpi--urgent svg { color: #c0392b; }
+/* KPI color variants */
+.renewal-kpi--red { border-color: rgba(192,57,43,0.28); background: rgba(192,57,43,0.05); }
+.renewal-kpi--red svg { color: #c0392b; }
+.renewal-kpi--red strong { color: #c0392b; }
+
+.renewal-kpi--orange { border-color: rgba(211,84,0,0.28); background: rgba(211,84,0,0.05); }
+.renewal-kpi--orange svg { color: #d35400; }
+.renewal-kpi--orange strong { color: #d35400; }
+
 .renewal-kpi--month svg { color: var(--accent); }
 .renewal-kpi--escrow svg { color: var(--gold); }
 .renewal-kpi--auto svg { color: #2f7d62; }
 .renewal-kpi--total svg { color: var(--accent-strong); }
 
+/* Color Legend */
+.renewal-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.renewal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.renewal-legend--red .legend-swatch { background: #c0392b; }
+.renewal-legend--orange .legend-swatch { background: #d35400; }
+.renewal-legend--green .legend-swatch { background: #2f7d62; }
+.renewal-legend--neutral .legend-swatch { background: var(--text-muted); }
+
+/* Header badges */
+.rc-header-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.rc-header-badge--red { background: rgba(192,57,43,0.12); color: #c0392b; }
+.rc-header-badge--orange { background: rgba(211,84,0,0.12); color: #d35400; }
+
 /* Filter Bar */
 .renewal-filter-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 18px;
@@ -3914,6 +3960,28 @@ tbody tr:hover {
 }
 
 /* Renewal Rows */
+/* Renewal sort controls row */
+.renewal-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Column label row */
+.renewal-col-labels {
+  display: grid;
+  grid-template-columns: 1fr 120px 160px 210px 90px;
+  gap: 12px;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 820;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 8px;
+}
+
 .renewal-rows {
   display: flex;
   flex-direction: column;
@@ -3921,10 +3989,10 @@ tbody tr:hover {
 
 .renewal-row {
   display: grid;
-  grid-template-columns: 36px 1fr auto auto;
-  align-items: center;
+  grid-template-columns: 36px 1fr 140px 180px 220px 80px;
+  align-items: start;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   transition: background 140ms ease;
   animation: folder-sweep-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -3938,21 +4006,46 @@ tbody tr:hover {
   background: var(--accent-soft);
 }
 
-.renewal-row--critical {
-  border-left: 3px solid #c0392b;
+/* Three-color urgency system */
+.renewal-row--red {
+  border-left: 4px solid #c0392b;
+  background: rgba(192, 57, 43, 0.045);
 }
 
-.renewal-row--urgent {
-  border-left: 3px solid #e67e22;
+.renewal-row--orange {
+  border-left: 4px solid #d35400;
+  background: rgba(211, 84, 0, 0.045);
 }
 
-.renewal-row--active {
-  border-left: 3px solid var(--accent);
+.renewal-row--green {
+  border-left: 4px solid #2f7d62;
+  background: rgba(47, 125, 98, 0.03);
+}
+
+.renewal-row--neutral {
+  border-left: 4px solid var(--border);
+  background: transparent;
 }
 
 .renewal-row--selected {
-  background: color-mix(in srgb, var(--accent) 7%, transparent) !important;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
+
+/* Renewal days badge — three-color */
+.renewal-days-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.days-badge--red { background: rgba(192,57,43,0.13); color: #c0392b; }
+.days-badge--orange { background: rgba(211,84,0,0.13); color: #d35400; }
+.days-badge--green { background: rgba(47,125,98,0.12); color: #2f7d62; }
 
 .renewal-row-check {
   display: flex;
@@ -4026,30 +4119,7 @@ tbody tr:hover {
   color: var(--text-muted);
 }
 
-.renewal-days {
-  font-size: 12px;
-  font-weight: 820;
-  color: var(--accent);
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-}
-
-.renewal-days.days--critical {
-  background: rgba(192, 57, 43, 0.12);
-  color: #c0392b;
-}
-
-.renewal-days.days--urgent {
-  background: rgba(230, 126, 34, 0.12);
-  color: #c0632a;
-}
-
-.renewal-premium {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
+/* legacy renewal-days removed — replaced by .renewal-days-badge */
 
 .renewal-tag {
   padding: 2px 8px;
@@ -4072,6 +4142,127 @@ tbody tr:hover {
   border: 1px solid color-mix(in srgb, #2f7d62 28%, transparent);
 }
 
+/* Date column */
+.renewal-date-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+/* Premium column */
+.renewal-premium-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.renewal-premium-current,
+.renewal-premium-new {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.premium-label {
+  font-size: 10px;
+  font-weight: 820;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.renewal-premium-current strong {
+  font-size: 13px;
+  font-weight: 820;
+  color: var(--text);
+}
+
+.renewal-premium-add {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 120ms ease;
+}
+
+.renewal-premium-add:hover { opacity: 0.75; transform: none; }
+
+.renewal-premium-entered {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 13px;
+  font-weight: 820;
+  color: var(--accent-strong);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 120ms ease;
+}
+
+.renewal-premium-entered:hover { opacity: 0.8; transform: none; }
+
+.renewal-premium-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.renewal-premium-input {
+  width: 90px;
+  padding: 4px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.renewal-premium-save {
+  padding: 4px 8px;
+  border: 1px solid #2f7d62;
+  border-radius: 6px;
+  background: rgba(47,125,98,0.12);
+  color: #2f7d62;
+  font-size: 13px;
+  font-weight: 820;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.renewal-premium-save:hover { background: rgba(47,125,98,0.22); transform: none; }
+
+.premium-change {
+  font-size: 11px;
+  font-weight: 820;
+  padding: 1px 5px;
+  border-radius: 999px;
+}
+
+.premium-change--up { background: rgba(192,57,43,0.1); color: #c0392b; }
+.premium-change--down { background: rgba(47,125,98,0.12); color: #2f7d62; }
+
+.renewal-tag--financed {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 820;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
 /* AI suggestion column */
 .renewal-row-ai {
   display: flex;
@@ -4091,10 +4282,10 @@ tbody tr:hover {
   width: fit-content;
 }
 
-.ai-tag--critical { background: rgba(192, 57, 43, 0.12); color: #c0392b; }
-.ai-tag--urgent { background: rgba(230, 126, 34, 0.12); color: #c0632a; }
-.ai-tag--active { background: var(--accent-soft); color: var(--accent-strong); }
-.ai-tag--success { background: rgba(47, 125, 98, 0.12); color: #2f7d62; }
+.ai-tag--critical { background: rgba(192,57,43,0.12); color: #c0392b; }
+.ai-tag--urgent { background: rgba(211,84,0,0.12); color: #d35400; }
+.ai-tag--active { background: rgba(47,125,98,0.12); color: #2f7d62; }
+.ai-tag--success { background: rgba(47,125,98,0.12); color: #2f7d62; }
 .ai-tag--info { background: var(--gold-soft); color: var(--gold); }
 .ai-tag--neutral { background: var(--surface-muted); color: var(--text-muted); }
 

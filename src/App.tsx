@@ -482,13 +482,14 @@ function defaultEmailTemplates(): EmailTemplate[] {
 
 const getRenewalAiSuggestion = (daysUntil: number, billingType?: string, paymentMethod?: string): { label: string; color: string; tip: string } => {
   const isEscrow = billingType?.toLowerCase().includes('escrow') || paymentMethod?.toLowerCase().includes('escrow')
-  const isAutopay = paymentMethod?.toLowerCase().includes('eft') || paymentMethod?.toLowerCase().includes('ach') || paymentMethod?.toLowerCase().includes('auto')
-  if (isEscrow) return { label: 'Escrow — monitor only', color: 'ai-tag--info', tip: 'Mortgage company will handle premium. Confirm mortgagee clause is current and verify escrow is active.' }
-  if (isAutopay) return { label: 'Auto-pay — confirm coverage', color: 'ai-tag--success', tip: 'Payment will draft automatically. Focus on coverage review and any limit changes needed.' }
-  if (daysUntil <= 7) return { label: 'Critical — contact now', color: 'ai-tag--critical', tip: 'Less than 7 days until renewal. Immediate outreach required to prevent lapse.' }
-  if (daysUntil <= 30) return { label: 'Urgent — 30-day window', color: 'ai-tag--urgent', tip: 'Send renewal package and request updated exposures. Quote alternatives if premium increased significantly.' }
-  if (daysUntil <= 60) return { label: 'In renewal window', color: 'ai-tag--active', tip: 'Good time to start market review. Request loss runs and updated application from client.' }
-  return { label: 'Early tracking', color: 'ai-tag--neutral', tip: 'Not in active renewal window yet. Flag for 60-day follow-up.' }
+  const isAutopay = paymentMethod?.toLowerCase().includes('eft') || paymentMethod?.toLowerCase().includes('ach') || paymentMethod?.toLowerCase().includes('monthly (eft)')
+  if (isEscrow) return { label: 'Escrow — verify active', color: 'ai-tag--info', tip: 'Mortgage company handles premium. Verify mortgagee clause is current, confirm escrow is funded, and check for any billing notices from carrier.' }
+  if (isAutopay) return { label: 'Auto-pay — confirm drafted', color: 'ai-tag--active', tip: 'Payment should draft automatically. Confirm the draft posted, review coverage levels, and check for any limit or exposure changes needed.' }
+  if (daysUntil < 0) return { label: 'PAST DUE — act now', color: 'ai-tag--critical', tip: 'Policy has lapsed or is at risk of lapse. Contact client immediately, confirm carrier grace period, and process renewal or reinstatement.' }
+  if (daysUntil <= 7) return { label: 'Expires in 7 days — urgent', color: 'ai-tag--urgent', tip: 'Less than 7 days remaining. If renewal is not bound, call client today. Confirm payment method and secure signed application.' }
+  if (daysUntil <= 30) return { label: 'Follow up — 30-day window', color: 'ai-tag--active', tip: 'Active renewal window. Send renewal package, request updated exposures or application, and quote alternatives if premium increased.' }
+  if (daysUntil <= 60) return { label: 'Start review — 60 days', color: 'ai-tag--active', tip: 'Good time to pull loss runs, review current limits, and begin market search if needed. Set a 30-day follow-up task.' }
+  return { label: 'Early tracking', color: 'ai-tag--neutral', tip: 'Not yet in active renewal window. Monitor and flag for 60-day outreach.' }
 }
 
 function buildNotifications(): Notification[] {
@@ -577,6 +578,8 @@ function App() {
   const [hideAutopay, setHideAutopay] = useState(false)
   const [selectedRenewalIds, setSelectedRenewalIds] = useState<Set<string>>(new Set())
   const [renewalOutreachModal, setRenewalOutreachModal] = useState<'email' | 'text' | null>(null)
+  const [renewalSort, setRenewalSort] = useState<'date' | 'name' | 'carrier' | 'billing'>('date')
+  const [renewalPremiumEdits, setRenewalPremiumEdits] = useState<Record<string, string>>({})
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(() => {
     try { return JSON.parse(localStorage.getItem('agencyiq-email-templates') ?? 'null') ?? defaultEmailTemplates() } catch { return defaultEmailTemplates() }
   })
@@ -1202,6 +1205,47 @@ function App() {
     showToast('Billing details saved')
   }
 
+  const saveRenewalPremium = (policyId: string, premiumStr: string) => {
+    const val = parseFloat(premiumStr.replace(/[^0-9.]/g, ''))
+    if (!isNaN(val) && val > 0) {
+      setDataset((cur) => ({
+        ...cur,
+        policies: cur.policies.map((p) => p.id === policyId ? { ...p, renewalPremium: val } as Policy & { renewalPremium: number } : p),
+      }))
+      setRenewalPremiumEdits((prev) => { const n = { ...prev }; delete n[policyId]; return n })
+      showToast('Renewal premium saved')
+    }
+  }
+
+  const exportRenewalsCsv = (items: RenewalPolicyItem[]) => {
+    const rows = [
+      ['Client', 'Policy Type', 'Carrier', 'Expiration Date', 'Days Until', 'Current Premium', 'Renewal Premium', 'Billing', 'Payment Plan', 'Status', 'Renewal Status', 'Escrow', 'Auto-pay'].join(','),
+      ...items.map((r) => [
+        `"${r.client?.name ?? ''}"`,
+        `"${r.policy.policyType}"`,
+        `"${r.policy.carrier}"`,
+        r.expDate,
+        r.daysUntil,
+        r.policy.premium,
+        (r.policy as Policy & { renewalPremium?: number }).renewalPremium ?? '',
+        `"${r.billingMethod}"`,
+        `"${r.paymentPlan}"`,
+        `"${r.policy.status}"`,
+        `"${r.renewal?.status ?? 'Not started'}"`,
+        r.isEscrow ? 'Yes' : 'No',
+        r.isAutopay ? 'Yes' : 'No',
+      ].join(',')),
+    ]
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `renewals-export-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast(`Exported ${items.length} renewals to CSV`)
+  }
+
   const saveEmailTemplate = (tpl: EmailTemplate) => {
     setEmailTemplates((prev) => {
       const idx = prev.findIndex((t) => t.id === tpl.id)
@@ -1257,7 +1301,7 @@ function App() {
   }, [dataset, todayIso])
 
   const filteredRenewalPolicies = useMemo(() => {
-    return renewalPolicies.filter((item) => {
+    const filtered = renewalPolicies.filter((item) => {
       if (hideEscrow && item.isEscrow) return false
       if (hideAutopay && item.isAutopay) return false
       if (renewalViewMode === 'range' && renewalDateFrom && renewalDateTo) {
@@ -1268,7 +1312,17 @@ function App() {
       }
       return true
     })
-  }, [renewalPolicies, hideEscrow, hideAutopay, renewalViewMode, renewalMonth, renewalDateFrom, renewalDateTo])
+    return [...filtered].sort((a, b) => {
+      if (renewalSort === 'name') return (a.client?.name ?? '').localeCompare(b.client?.name ?? '')
+      if (renewalSort === 'carrier') return a.policy.carrier.localeCompare(b.policy.carrier)
+      if (renewalSort === 'billing') {
+        const billingOrder = (item: RenewalPolicyItem) =>
+          item.isEscrow ? 0 : item.isAutopay ? 1 : (item.paymentPlan.toLowerCase().includes('financ') ? 2 : 3)
+        return billingOrder(a) - billingOrder(b)
+      }
+      return a.expDate.localeCompare(b.expDate)
+    })
+  }, [renewalPolicies, hideEscrow, hideAutopay, renewalViewMode, renewalMonth, renewalDateFrom, renewalDateTo, renewalSort])
 
   return (
     <div className="app-shell" data-mode={mode} data-palette={palette}>
@@ -1540,6 +1594,12 @@ function App() {
             deleteEmailTemplate={deleteEmailTemplate}
             renewalOutreachModal={renewalOutreachModal}
             setRenewalOutreachModal={setRenewalOutreachModal}
+            renewalSort={renewalSort}
+            setRenewalSort={setRenewalSort}
+            renewalPremiumEdits={renewalPremiumEdits}
+            setRenewalPremiumEdits={setRenewalPremiumEdits}
+            saveRenewalPremium={saveRenewalPremium}
+            exportRenewalsCsv={exportRenewalsCsv}
             onOpenClient={(clientId) => { setSelectedClientId(clientId); setClientTab('Policies'); setActiveView('profile') }}
             showToast={showToast}
             currency={currency}
@@ -2809,6 +2869,9 @@ function RenewalCenter({
   selectedIds, setSelectedIds, toggleSelection,
   emailTemplates, editingTemplate, setEditingTemplate, saveEmailTemplate, deleteEmailTemplate,
   renewalOutreachModal, setRenewalOutreachModal,
+  renewalSort, setRenewalSort,
+  renewalPremiumEdits, setRenewalPremiumEdits, saveRenewalPremium,
+  exportRenewalsCsv,
   onOpenClient, showToast,
   currency, formatDate, formatFullDate: _formatFullDate, getUserName: _getUserName,
 }: {
@@ -2838,6 +2901,12 @@ function RenewalCenter({
   deleteEmailTemplate: (id: string) => void
   renewalOutreachModal: 'email' | 'text' | null
   setRenewalOutreachModal: (v: 'email' | 'text' | null) => void
+  renewalSort: 'date' | 'name' | 'carrier' | 'billing'
+  setRenewalSort: (v: 'date' | 'name' | 'carrier' | 'billing') => void
+  renewalPremiumEdits: Record<string, string>
+  setRenewalPremiumEdits: (v: Record<string, string>) => void
+  saveRenewalPremium: (policyId: string, val: string) => void
+  exportRenewalsCsv: (items: RenewalPolicyItem[]) => void
   onOpenClient: (clientId: string) => void
   showToast: (msg: string) => void
   currency: Intl.NumberFormat
@@ -2859,7 +2928,8 @@ function RenewalCenter({
     }
   }
 
-  const urgent = allRenewalPolicies.filter((r) => r.daysUntil <= 30 && !r.isEscrow && !r.isAutopay).length
+  const overdueCount = allRenewalPolicies.filter((r) => r.daysUntil < 0 && !r.isEscrow && !r.isAutopay).length
+  const criticalCount = allRenewalPolicies.filter((r) => r.daysUntil >= 0 && r.daysUntil <= 7 && !r.isEscrow && !r.isAutopay).length
   const dueThisMonth = allRenewalPolicies.filter((r) => r.expDate.startsWith(renewalMonth)).length
   const escrowCount = allRenewalPolicies.filter((r) => r.isEscrow).length
   const autopayCount = allRenewalPolicies.filter((r) => r.isAutopay).length
@@ -2925,9 +2995,16 @@ function RenewalCenter({
         <div>
           <p className="eyebrow">Renewal Command Center</p>
           <h1>Policy Renewals</h1>
-          <p className="account-context">{renewalPolicies.length} policies in view · {urgent > 0 ? `${urgent} urgent` : 'All on track'}</p>
+          <p className="account-context">
+            {renewalPolicies.length} policies in view
+            {overdueCount > 0 && <span className="rc-header-badge rc-header-badge--red">{overdueCount} past due</span>}
+            {criticalCount > 0 && <span className="rc-header-badge rc-header-badge--orange">{criticalCount} due within 7 days</span>}
+          </p>
         </div>
         <div className="renewal-header-actions">
+          <button className="utility-action" type="button" onClick={() => exportRenewalsCsv(someSelected ? renewalPolicies.filter((r) => selectedIds.has(r.policy.id)) : renewalPolicies)}>
+            <CircleDollarSign size={15} /> Export {someSelected ? `${selectedIds.size} selected` : 'all'} to CSV
+          </button>
           <button className="utility-action" type="button" onClick={() => setShowTemplates(true)}>
             <Mail size={15} /> Email Templates
           </button>
@@ -2936,11 +3013,18 @@ function RenewalCenter({
 
       {/* KPI Strip */}
       <div className="renewal-kpi-strip">
-        <div className="renewal-kpi renewal-kpi--urgent">
+        <div className="renewal-kpi renewal-kpi--red">
           <Zap size={18} />
           <div>
-            <strong>{urgent}</strong>
-            <span>Urgent (&lt;30 days)</span>
+            <strong>{overdueCount}</strong>
+            <span>Past Due</span>
+          </div>
+        </div>
+        <div className="renewal-kpi renewal-kpi--orange">
+          <CalendarClock size={18} />
+          <div>
+            <strong>{criticalCount}</strong>
+            <span>Due in 7 Days</span>
           </div>
         </div>
         <div className="renewal-kpi renewal-kpi--month">
@@ -2961,7 +3045,7 @@ function RenewalCenter({
           <Sparkles size={18} />
           <div>
             <strong>{autopayCount}</strong>
-            <span>Auto-pay enrolled</span>
+            <span>Auto-pay</span>
           </div>
         </div>
         <div className="renewal-kpi renewal-kpi--total">
@@ -2971,6 +3055,14 @@ function RenewalCenter({
             <span>Premium in view</span>
           </div>
         </div>
+      </div>
+
+      {/* Color Legend */}
+      <div className="renewal-legend">
+        <div className="renewal-legend-item renewal-legend--red"><span className="legend-swatch" />Past due — immediate action</div>
+        <div className="renewal-legend-item renewal-legend--orange"><span className="legend-swatch" />Expires within 7 days — urgent outreach</div>
+        <div className="renewal-legend-item renewal-legend--green"><span className="legend-swatch" />More than 7 days — follow-up &amp; review</div>
+        <div className="renewal-legend-item renewal-legend--neutral"><span className="legend-swatch" />Escrow or auto-pay — confirm &amp; monitor</div>
       </div>
 
       {/* Filter Row */}
@@ -2999,10 +3091,16 @@ function RenewalCenter({
             <label>To <input type="date" value={renewalDateTo} onChange={(e) => setRenewalDateTo(e.target.value)} /></label>
           </div>
         )}
+        <div className="renewal-sort-controls">
+          <span className="sort-label">Sort:</span>
+          {([['date','Renewal Date'],['name','Client Name'],['carrier','Carrier'],['billing','Billing Type']] as ['date'|'name'|'carrier'|'billing', string][]).map(([val, lbl]) => (
+            <button key={val} className={renewalSort === val ? 'sort-tab active' : 'sort-tab'} type="button" onClick={() => setRenewalSort(val)}>{lbl}</button>
+          ))}
+        </div>
         <div className="renewal-checkboxes">
           <label className="renewal-filter-check">
             <input type="checkbox" checked={hideEscrow} onChange={(e) => setHideEscrow(e.target.checked)} />
-            Hide Escrow / Mortgagee
+            Hide Escrow
           </label>
           <label className="renewal-filter-check">
             <input type="checkbox" checked={hideAutopay} onChange={(e) => setHideAutopay(e.target.checked)} />
@@ -3015,22 +3113,17 @@ function RenewalCenter({
       {someSelected && (
         <div className="renewal-bulk-bar">
           <span className="renewal-bulk-count">{selectedIds.size} selected</span>
-          <button
-            className="primary-action renewal-bulk-btn"
-            type="button"
-            onClick={() => setRenewalOutreachModal('email')}
-          >
-            <Send size={15} /> Send Email Reminder
+          <button className="primary-action renewal-bulk-btn" type="button" onClick={() => setRenewalOutreachModal('email')}>
+            <Send size={15} /> Email Reminder
           </button>
-          <button
-            className="secondary-action renewal-bulk-btn"
-            type="button"
-            onClick={() => setRenewalOutreachModal('text')}
-          >
+          <button className="secondary-action renewal-bulk-btn" type="button" onClick={() => setRenewalOutreachModal('text')}>
             <MessageSquare size={15} /> Send Text
           </button>
+          <button className="utility-action" type="button" onClick={() => exportRenewalsCsv(renewalPolicies.filter((r) => selectedIds.has(r.policy.id)))}>
+            Export Selected
+          </button>
           <button className="utility-action" type="button" onClick={() => setSelectedIds(new Set())}>
-            Clear selection
+            Clear
           </button>
         </div>
       )}
@@ -3042,45 +3135,97 @@ function RenewalCenter({
             <input type="checkbox" checked={allSelected} onChange={toggleAll} />
             <span>{allSelected ? 'Deselect all' : 'Select all'}</span>
           </label>
-          <span className="renewal-table-count">{renewalPolicies.length} policies</span>
+          <div className="renewal-col-labels">
+            <span>Client / Policy</span>
+            <span>Renewal Date</span>
+            <span>Premiums</span>
+            <span>Billing</span>
+            <span>AI Recommendation</span>
+            <span>Actions</span>
+          </div>
+          <span className="renewal-table-count">{renewalPolicies.length}</span>
         </div>
         <div className="renewal-rows">
           {renewalPolicies.map((item) => {
             const { policy, client, daysUntil, isEscrow, isAutopay } = item
+            const isPastDue = daysUntil < 0
+            const isWithin7 = daysUntil >= 0 && daysUntil <= 7
+            const isGreen = daysUntil > 7
+            const isNeutral = isEscrow || isAutopay
+            const rowClass = isNeutral ? 'renewal-row--neutral' : isPastDue ? 'renewal-row--red' : isWithin7 ? 'renewal-row--orange' : isGreen ? 'renewal-row--green' : ''
             const ai = getRenewalAiSuggestion(daysUntil, item.billingMethod, item.paymentPlan)
             const isSelected = selectedIds.has(policy.id)
-            const urgencyClass = daysUntil <= 7 ? 'renewal-row--critical' : daysUntil <= 30 ? 'renewal-row--urgent' : daysUntil <= 60 ? 'renewal-row--active' : ''
+            const renewalPremium = (policy as Policy & { renewalPremium?: number }).renewalPremium
+            const editVal = renewalPremiumEdits[policy.id]
+            const isFinanced = item.paymentPlan.toLowerCase().includes('financ') || item.billingMethod.toLowerCase().includes('financ')
             return (
-              <div className={`renewal-row ${urgencyClass} ${isSelected ? 'renewal-row--selected' : ''}`} key={policy.id}>
+              <div className={`renewal-row ${rowClass} ${isSelected ? 'renewal-row--selected' : ''}`} key={policy.id}>
                 <label className="renewal-row-check">
                   <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(policy.id)} />
                 </label>
+                {/* Left color bar via CSS */}
                 <div className="renewal-row-main">
                   <div className="renewal-row-identity">
-                    <button
-                      className="renewal-client-link"
-                      type="button"
-                      onClick={() => onOpenClient(policy.clientId)}
-                    >
+                    <button className="renewal-client-link" type="button" onClick={() => onOpenClient(policy.clientId)}>
                       {client?.name ?? 'Unknown'}
                     </button>
                     <span className="renewal-policy-type">{policy.policyType}</span>
                     <span className="renewal-carrier">{policy.carrier}</span>
                   </div>
                   <div className="renewal-row-meta">
-                    <span className="renewal-date-chip">
-                      <CalendarClock size={13} />
-                      {formatDate(policy.expirationDate)}
-                    </span>
-                    <span className={`renewal-days ${daysUntil <= 7 ? 'days--critical' : daysUntil <= 30 ? 'days--urgent' : ''}`}>
-                      {daysUntil < 0 ? `${Math.abs(daysUntil)}d overdue` : `${daysUntil}d left`}
-                    </span>
-                    <span className="renewal-premium">{currency.format(policy.premium)}</span>
                     {isEscrow && <span className="renewal-tag renewal-tag--escrow">Escrow</span>}
                     {isAutopay && <span className="renewal-tag renewal-tag--autopay">Auto-pay</span>}
+                    {isFinanced && <span className="renewal-tag renewal-tag--financed">Financed</span>}
                     <span className="status-pill">{item.renewal?.status ?? 'Not started'}</span>
                   </div>
                 </div>
+
+                <div className="renewal-date-col">
+                  <span className="renewal-date-chip">
+                    <CalendarClock size={13} />
+                    {formatDate(policy.expirationDate)}
+                  </span>
+                  <span className={`renewal-days-badge ${isPastDue ? 'days-badge--red' : isWithin7 ? 'days-badge--orange' : 'days-badge--green'}`}>
+                    {isPastDue ? `${Math.abs(daysUntil)}d PAST DUE` : `${daysUntil}d left`}
+                  </span>
+                </div>
+
+                <div className="renewal-premium-col">
+                  <div className="renewal-premium-current">
+                    <span className="premium-label">Current</span>
+                    <strong>{currency.format(policy.premium)}</strong>
+                  </div>
+                  <div className="renewal-premium-new">
+                    <span className="premium-label">Renewal</span>
+                    {editVal !== undefined ? (
+                      <div className="renewal-premium-input-row">
+                        <input
+                          className="renewal-premium-input"
+                          type="number"
+                          value={editVal}
+                          autoFocus
+                          onChange={(e) => setRenewalPremiumEdits({ ...renewalPremiumEdits, [policy.id]: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveRenewalPremium(policy.id, editVal)
+                            if (e.key === 'Escape') setRenewalPremiumEdits(Object.fromEntries(Object.entries(renewalPremiumEdits).filter(([k]) => k !== policy.id)))
+                          }}
+                        />
+                        <button className="renewal-premium-save" type="button" onClick={() => saveRenewalPremium(policy.id, editVal)}>✓</button>
+                      </div>
+                    ) : renewalPremium ? (
+                      <button className="renewal-premium-entered" type="button" onClick={() => setRenewalPremiumEdits({ ...renewalPremiumEdits, [policy.id]: String(renewalPremium) })}>
+                        {currency.format(renewalPremium)}
+                        {renewalPremium > policy.premium && <span className="premium-change premium-change--up">+{Math.round(((renewalPremium - policy.premium) / policy.premium) * 100)}%</span>}
+                        {renewalPremium < policy.premium && <span className="premium-change premium-change--down">-{Math.round(((policy.premium - renewalPremium) / policy.premium) * 100)}%</span>}
+                      </button>
+                    ) : (
+                      <button className="renewal-premium-add" type="button" onClick={() => setRenewalPremiumEdits({ ...renewalPremiumEdits, [policy.id]: '' })}>
+                        + Enter renewal premium
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="renewal-row-ai">
                   <span className={`ai-tag ${ai.color}`}>
                     <Sparkles size={11} />
@@ -3088,19 +3233,14 @@ function RenewalCenter({
                   </span>
                   <span className="ai-tip">{ai.tip}</span>
                 </div>
+
                 <div className="renewal-row-actions">
-                  <button
-                    className="utility-action renewal-quick-email"
-                    type="button"
-                    onClick={() => { toggleSelection(policy.id); setRenewalOutreachModal('email') }}
-                  >
+                  <button className="utility-action renewal-quick-email" type="button" title="Send email reminder"
+                    onClick={() => { if (!selectedIds.has(policy.id)) toggleSelection(policy.id); setRenewalOutreachModal('email') }}>
                     <Mail size={14} />
                   </button>
-                  <button
-                    className="utility-action renewal-quick-email"
-                    type="button"
-                    onClick={() => { toggleSelection(policy.id); setRenewalOutreachModal('text') }}
-                  >
+                  <button className="utility-action renewal-quick-email" type="button" title="Send text"
+                    onClick={() => { if (!selectedIds.has(policy.id)) toggleSelection(policy.id); setRenewalOutreachModal('text') }}>
                     <MessageSquare size={14} />
                   </button>
                 </div>
