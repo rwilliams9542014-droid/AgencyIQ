@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { CircleCheck as CheckCircle2, ChevronRight, Cloud, FilePlus, FolderOpen, X } from 'lucide-react'
-import mascot from '../assets/AGENCYIQ_MASCOT_CLEAR.png'
+import mascot from '../assets/IQ_MASCOT.png'
 import type { Client, LineOfBusiness, UserProfile } from '../data/crmTypes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -243,7 +243,6 @@ export function NewClientWizard({
         {/* ── Left: mascot column ─────────────────────────────────── */}
         <div className="wizard-mascot-col">
           <div className={`wizard-mascot-wrap wizard-mascot--${mascotState}`}>
-            <div className="wizard-mascot-glow" />
             <img src={mascot} alt="AgencyIQ assistant" className="wizard-mascot-img" />
           </div>
 

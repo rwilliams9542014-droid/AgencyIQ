@@ -220,18 +220,9 @@
   position: relative; display: flex;
   align-items: center; justify-content: center;
 }
-.lp-hero-glow {
-  position: absolute; width: 380px; height: 380px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(24,212,195,.18) 0%, transparent 70%);
-  filter: blur(24px); pointer-events: none;
-}
+.lp-hero-glow { display: none; }
 .lp-hero-mascot {
   width: 360px; height: auto; display: block;
-  /* BLACK-BG PNG: screen blend dissolves the black, robot floats free */
-  mix-blend-mode: screen;
-  background: transparent;
-  box-shadow: none;
-  border: none;
   position: relative; z-index: 2;
   animation: lp-float 5s ease-in-out infinite;
 }
@@ -361,8 +352,6 @@
 }
 .lp-spotlight-mascot {
   width: 140px; height: auto; object-fit: contain;
-  background: transparent; box-shadow: none; border: none;
-  mix-blend-mode: screen;
   animation: lp-float 5s ease-in-out 1.2s infinite;
 }
 
@@ -477,8 +466,6 @@
 }
 .lp-about-mascot {
   width: 290px; height: auto; object-fit: contain;
-  background: transparent; box-shadow: none; border: none;
-  mix-blend-mode: multiply;
   position: relative; z-index: 1;
   animation: lp-float 5.5s ease-in-out 2s infinite;
 }

@@ -5,7 +5,7 @@ import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
 import { NewClientWizard } from './components/NewClientWizard'
 import { supabase } from './lib/supabase'
-import mascotImg from './assets/AGENCYIQ_MASCOT_CLEAR.png'
+import mascotImg from './assets/IQ_MASCOT.png'
 import type { Client, CrmDataset, Policy, PolicyBilling, UserRole } from './data/crmTypes'
 import { createRecordId, loadDataset, saveDataset } from './data/scopedStorage'
 import './App.css'
@@ -538,7 +538,7 @@ function App() {
   })
   const [appearanceOpen, setAppearanceOpen] = useState(false)
   const [aiHelpOpen, setAiHelpOpen] = useState(false)
-  const [activeView, setActiveView] = useState<AppView>('profile')
+  const [activeView, setActiveView] = useState<AppView>('dashboard')
   const [clientSearch, setClientSearch] = useState('')
   const [clientFilter, setClientFilter] = useState<ClientFilter>('All')
   const [clientTab, setClientTab] = useState<ClientTab>('Overview')
@@ -2765,7 +2765,6 @@ function App() {
           <div className="ai-help-header">
             <div className="ai-help-mascot-row">
               <div className="ai-panel-mascot-wrap">
-                <div className="ai-panel-mascot-glow" />
                 <img src={mascotImg} alt="AgencyIQ assistant" className="ai-panel-mascot" />
               </div>
               <div>
@@ -2827,7 +2826,7 @@ function App() {
 
           {aiLoading && (
             <div className="ai-loading">
-              <div className="ai-mascot-wrap"><div className="ai-mascot-glow" /><img src={mascotImg} alt="" className="ai-loading-mascot" aria-hidden="true" /></div>
+              <div className="ai-mascot-wrap"><img src={mascotImg} alt="" className="ai-loading-mascot" aria-hidden="true" /></div>
               <span className="ai-loading-dot" /><span className="ai-loading-dot" /><span className="ai-loading-dot" />
               <span>Thinking…</span>
             </div>
@@ -2836,7 +2835,7 @@ function App() {
           {aiAnswer && !aiLoading && (
             <div className="ai-answer-panel">
               <div className="ai-answer-header">
-                <div className="ai-mascot-wrap"><div className="ai-mascot-glow" /><img src={mascotImg} alt="" className="ai-answer-mascot" aria-hidden="true" /></div>
+                <div className="ai-mascot-wrap"><img src={mascotImg} alt="" className="ai-answer-mascot" aria-hidden="true" /></div>
                 <strong>AgencyIQ says:</strong>
                 <button className="text-button ai-clear-btn" type="button" onClick={() => { setAiAnswer(''); setAiQuery('') }}>
                   Ask another
@@ -4629,7 +4628,6 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
           }}
           onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
         >
-          <div className="iq-buddy-glow" />
           <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
         </button>
 

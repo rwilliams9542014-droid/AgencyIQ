@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronDown, CircleDollarSign, Gauge, Handshake, Lock, Mail, MessageSquare, Phone, RefreshCcw, Shield, Sparkles, Star, Users, X, Zap, Menu } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
-import mascotImg from './assets/AGENCYIQ_MASCOT_CLEAR.png'
+import mascotImg from './assets/IQ_MASCOT.png'
 import './LandingPage.css'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
