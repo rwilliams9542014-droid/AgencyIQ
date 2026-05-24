@@ -227,10 +227,70 @@
   animation: lp-float 5s ease-in-out infinite;
   mix-blend-mode: screen;
   filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.4));
+  transition: filter 0.3s ease;
 }
 @keyframes lp-float {
   0%,100% { transform: translateY(0); }
   50% { transform: translateY(-20px); }
+}
+
+/* ── Charge levels — builds up before explosion ── */
+.lp-mascot--charge-1 {
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4))
+          drop-shadow(0 0 18px #00d4ff88)
+          drop-shadow(0 0 8px #00aaff55);
+  animation: lp-float 5s ease-in-out infinite, lp-charge-pulse-1 1.2s ease-in-out infinite;
+}
+.lp-mascot--charge-2 {
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4))
+          drop-shadow(0 0 32px #00d4ff)
+          drop-shadow(0 0 16px #0077ff)
+          drop-shadow(0 0 60px #00eeffaa);
+  animation: lp-float 5s ease-in-out infinite, lp-charge-pulse-2 0.6s ease-in-out infinite;
+}
+
+@keyframes lp-charge-pulse-1 {
+  0%,100% { filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4)) drop-shadow(0 0 14px #00d4ff88); }
+  50%     { filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4)) drop-shadow(0 0 28px #00d4ff) drop-shadow(0 0 8px #0077ff); }
+}
+@keyframes lp-charge-pulse-2 {
+  0%,100% { filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4)) drop-shadow(0 0 28px #00d4ff) drop-shadow(0 0 12px #0077ff) drop-shadow(0 0 50px #00eeffaa); }
+  50%     { filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4)) drop-shadow(0 0 48px #00eeff) drop-shadow(0 0 24px #0055ff) drop-shadow(0 0 80px #00d4ff); }
+}
+
+/* ── Charge arc SVG overlay ── */
+.lp-hero-visual {
+  position: relative;
+}
+.lp-charge-arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+.lp-arc {
+  fill: none;
+  stroke: #38d4ff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.lp-arc--a { animation: lp-arc-flicker 0.55s ease-in-out 0s infinite; }
+.lp-arc--b { animation: lp-arc-flicker 0.48s ease-in-out 0.09s infinite; stroke: #80f0ff; }
+.lp-arc--c { animation: lp-arc-flicker 0.52s ease-in-out 0.18s infinite; stroke: #22d3ee; }
+.lp-arc--d { animation: lp-arc-flicker 0.44s ease-in-out 0.06s infinite; stroke: #38d4ff; }
+.lp-arc--e { animation: lp-arc-flicker 0.58s ease-in-out 0.14s infinite; stroke: #a5f3ff; stroke-width: 1.5; }
+
+@keyframes lp-arc-flicker {
+  0%   { opacity: 0; }
+  12%  { opacity: 0.9; }
+  28%  { opacity: 0.2; }
+  44%  { opacity: 0.8; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
 }
 
 .lp-bubble {

@@ -424,6 +424,62 @@
   background: var(--accent-soft);
 }
 
+/* ── System / Match Desktop option ── */
+.scheme-option--system {
+  border-style: dashed;
+  border-color: var(--accent);
+  background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 100%);
+  position: relative;
+  overflow: hidden;
+}
+.scheme-option--system::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    hsl(var(--sys-accent-h, 180), var(--sys-accent-s, 50%), 50%) 0%,
+    transparent 60%);
+  opacity: 0.12;
+  pointer-events: none;
+}
+.scheme-option--system.active {
+  border-style: solid;
+  background: linear-gradient(90deg,
+    hsl(var(--sys-accent-h, 180), var(--sys-accent-s, 50%), 85%) 0%,
+    var(--accent-soft) 100%);
+}
+.scheme-system-icon {
+  width: 48px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.scheme-system-matched {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+  padding-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* When system theme is active, use OS-derived CSS variables */
+[data-system='true'] {
+  --accent: var(--sys-accent, var(--accent));
+  --accent-light: var(--sys-accent-light, var(--accent-light));
+  --accent-glow: var(--sys-accent-glow, var(--accent-glow));
+  --accent-soft: var(--sys-accent-muted, var(--accent-soft));
+  --bg: var(--sys-bg, var(--bg));
+  --surface: var(--sys-surface, var(--surface));
+  --border: var(--sys-border, var(--border));
+  --text: var(--sys-text, var(--text));
+  --text-muted: var(--sys-text-muted, var(--text-muted));
+}
+
 .mode-toggle {
   width: 100%;
   min-height: 38px;

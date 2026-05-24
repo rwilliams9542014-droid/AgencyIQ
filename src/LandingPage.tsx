@@ -252,11 +252,27 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
 
           <div className="lp-hero-visual">
             <div className="lp-hero-glow" />
+            {/* Charge arc SVG — visible at click 2 */}
+            {mascotClicks === 2 && !mascotZapping && (
+              <svg className="lp-charge-arcs" viewBox="0 0 200 200" aria-hidden="true">
+                <defs>
+                  <filter id="arc-glow">
+                    <feGaussianBlur stdDeviation="3" result="b" />
+                    <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+                <polyline className="lp-arc lp-arc--a" points="100,10 88,45 105,45 78,95" filter="url(#arc-glow)" />
+                <polyline className="lp-arc lp-arc--b" points="160,40 142,70 155,70 130,110" filter="url(#arc-glow)" />
+                <polyline className="lp-arc lp-arc--c" points="40,50 58,80 44,80 68,115" filter="url(#arc-glow)" />
+                <polyline className="lp-arc lp-arc--d" points="175,110 155,130 165,130 148,160" filter="url(#arc-glow)" />
+                <polyline className="lp-arc lp-arc--e" points="25,100 45,122 34,122 52,150" filter="url(#arc-glow)" />
+              </svg>
+            )}
             <img
               ref={mascotRef}
               src={mascotImg}
               alt="IQ — your AgencyIQ assistant"
-              className={`lp-hero-mascot${mascotZapping ? ' lp-mascot--zapping' : ''}`}
+              className={`lp-hero-mascot lp-mascot--charge-${mascotClicks}${mascotZapping ? ' lp-mascot--zapping' : ''}`}
               onClick={handleMascotClick}
               style={{ cursor: 'pointer' }}
             />

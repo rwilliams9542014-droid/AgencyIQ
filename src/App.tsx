@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Mail, Menu, Moon, Palette, RefreshCcw, Search, Send, SlidersHorizontal, Settings, Sparkles, Sun, UsersRound, X, Zap } from 'lucide-react'
+import { ArrowLeft, Bell, Bot, BriefcaseBusiness, CalendarClock, CircleCheck as CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign, Gauge, Handshake, MessageSquare, LayoutDashboard, Lock, Mail, Menu, Monitor, Moon, Palette, RefreshCcw, Search, Send, SlidersHorizontal, Settings, Sparkles, Sun, UsersRound, X, Zap } from 'lucide-react'
 import agencyIqLogo from './assets/agencyiq-logo.png'
 import { canViewOwnerAnalytics } from './auth/permissions'
 import { IvansPanel } from './components/IvansPanel'
@@ -150,17 +150,25 @@ type PaletteId =
   | 'plum'
   | 'classic'
   | 'contrast'
+  | 'system'
 type ColorMode = 'light' | 'dark'
 
 type ThemeOption = {
   id: PaletteId
   label: string
   colors: string[]
+  isSystem?: boolean
 }
 
 const defaultPalette: PaletteId = 'agencyiq'
 
 const themeOptions: ThemeOption[] = [
+  {
+    id: 'system',
+    label: 'Match Desktop',
+    colors: ['#888', '#aaa', '#ccc'],
+    isSystem: true,
+  },
   {
     id: 'coastal',
     label: 'Coastal Teal',
@@ -205,6 +213,84 @@ const themeOptions: ThemeOption[] = [
 
 const isPaletteId = (value: string | null): value is PaletteId => {
   return themeOptions.some((option) => option.id === value)
+}
+
+// ── System theme helpers ────────────────────────────────────────────
+
+function hexToHsl(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return [0, 0, Math.round(l * 100)]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h = 0
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+  else if (max === g) h = ((b - r) / d + 2) / 6
+  else h = ((r - g) / d + 4) / 6
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)]
+}
+
+function rgbStringToHex(rgb: string): string | null {
+  const m = rgb.match(/(\d+),\s*(\d+),\s*(\d+)/)
+  if (!m) return null
+  return '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('')
+}
+
+// Read the OS accent color using the CSS AccentColor system keyword
+function readOsAccentColor(): string | null {
+  try {
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:absolute;width:1px;height:1px;background:AccentColor;visibility:hidden;'
+    document.body.appendChild(probe)
+    const raw = getComputedStyle(probe).backgroundColor
+    document.body.removeChild(probe)
+    return rgbStringToHex(raw)
+  } catch { return null }
+}
+
+// Map OS accent hue → best matching CRM palette
+function osAccentToPalette(hex: string): PaletteId {
+  const [h, s, l] = hexToHsl(hex)
+  // Very dark / achromatic → graphite
+  if (s < 15) return l < 40 ? 'graphite' : 'classic'
+  // Hue ranges
+  if (h >= 165 && h <= 210) return 'agencyiq'   // cyan/teal
+  if (h >= 130 && h < 165)  return 'evergreen'  // green
+  if (h >= 210 && h < 260)  return 'sapphire'   // blue
+  if (h >= 260 && h < 310)  return 'plum'       // purple/violet
+  if (h >= 310 || h < 20)   return 'classic'    // red/pink → neutral
+  if (h >= 20 && h < 60)    return 'graphite'   // orange/amber
+  if (h >= 60 && h < 130)   return 'coastal'    // yellow-green
+  return 'agencyiq'
+}
+
+// Inject dynamic CSS variables derived from the OS accent color
+function applySystemThemeVars(hex: string, isDark: boolean) {
+  const [h, s] = hexToHsl(hex)
+  const root = document.documentElement
+  // Primary accent — use the actual OS color
+  root.style.setProperty('--sys-accent', hex)
+  root.style.setProperty('--sys-accent-h', String(h))
+  root.style.setProperty('--sys-accent-s', `${s}%`)
+  // Derive lighter/darker shades
+  root.style.setProperty('--sys-accent-light', `hsl(${h},${s}%,${isDark ? 75 : 45}%)`)
+  root.style.setProperty('--sys-accent-glow',  `hsl(${h},${s}%,${isDark ? 65 : 55}%)`)
+  root.style.setProperty('--sys-accent-muted',  `hsl(${h},${Math.round(s * 0.4)}%,${isDark ? 22 : 92}%)`)
+  root.style.setProperty('--sys-bg',  isDark ? `hsl(${h},12%,8%)` : `hsl(${h},8%,97%)`)
+  root.style.setProperty('--sys-surface', isDark ? `hsl(${h},10%,13%)` : `hsl(${h},6%,100%)`)
+  root.style.setProperty('--sys-border', isDark ? `hsl(${h},14%,22%)` : `hsl(${h},10%,88%)`)
+  root.style.setProperty('--sys-text', isDark ? `hsl(${h},8%,94%)` : `hsl(${h},10%,10%)`)
+  root.style.setProperty('--sys-text-muted', isDark ? `hsl(${h},6%,60%)` : `hsl(${h},6%,45%)`)
+}
+
+function clearSystemThemeVars() {
+  const root = document.documentElement
+  ;['--sys-accent','--sys-accent-h','--sys-accent-s','--sys-accent-light','--sys-accent-glow',
+    '--sys-accent-muted','--sys-bg','--sys-surface','--sys-border','--sys-text','--sys-text-muted']
+    .forEach(v => root.style.removeProperty(v))
 }
 
 const currency = new Intl.NumberFormat('en-US', {
@@ -628,6 +714,30 @@ function App() {
   useEffect(() => {
     localStorage.setItem('agencyiq-mode', mode)
   }, [mode])
+
+  // System theme: sync OS accent color + auto dark/light mode
+  const [systemAccentPalette, setSystemAccentPalette] = useState<PaletteId>('agencyiq')
+  useEffect(() => {
+    if (palette !== 'system') { clearSystemThemeVars(); return }
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    setMode(isDark ? 'dark' : 'light')
+    const hex = readOsAccentColor()
+    if (hex) {
+      const matched = osAccentToPalette(hex)
+      setSystemAccentPalette(matched)
+      applySystemThemeVars(hex, isDark)
+    } else {
+      setSystemAccentPalette('agencyiq')
+    }
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onMqChange = (e: MediaQueryListEvent) => {
+      setMode(e.matches ? 'dark' : 'light')
+      const h2 = readOsAccentColor()
+      if (h2) applySystemThemeVars(h2, e.matches)
+    }
+    mq.addEventListener('change', onMqChange)
+    return () => { mq.removeEventListener('change', onMqChange); clearSystemThemeVars() }
+  }, [palette])
 
   useEffect(() => {
     saveDataset(dataset)
@@ -1352,7 +1462,7 @@ function App() {
   }, [renewalPolicies, hideEscrow, hideAutopay, renewalViewMode, renewalMonth, renewalDateFrom, renewalDateTo, renewalSort])
 
   return (
-    <div className="app-shell" data-mode={mode} data-palette={palette}>
+    <div className="app-shell" data-mode={mode} data-palette={palette === 'system' ? systemAccentPalette : palette} data-system={palette === 'system' ? 'true' : undefined}>
       <aside className="sidebar">
         <div className="logo-wrap sidebar-logo">
           <div className="logo-button">
@@ -1463,18 +1573,27 @@ function App() {
                   <div className="palette-options" role="group" aria-label="Color scheme">
                     {themeOptions.map((theme) => (
                       <button
-                        className={palette === theme.id ? 'scheme-option active' : 'scheme-option'}
+                        className={`scheme-option${palette === theme.id ? ' active' : ''}${theme.isSystem ? ' scheme-option--system' : ''}`}
                         type="button"
                         key={theme.id}
                         aria-pressed={palette === theme.id}
                         onClick={() => setPalette(theme.id)}
                       >
-                        <span className="scheme-swatches" aria-hidden="true">
-                          {theme.colors.map((color) => (
-                            <span key={color} style={{ background: color }} />
-                          ))}
-                        </span>
+                        {theme.isSystem ? (
+                          <span className="scheme-system-icon" aria-hidden="true">
+                            <Monitor size={14} />
+                          </span>
+                        ) : (
+                          <span className="scheme-swatches" aria-hidden="true">
+                            {theme.colors.map((color) => (
+                              <span key={color} style={{ background: color }} />
+                            ))}
+                          </span>
+                        )}
                         <span>{theme.label}</span>
+                        {theme.isSystem && palette === 'system' && (
+                          <span className="scheme-system-matched">→ {themeOptions.find(t => t.id === systemAccentPalette)?.label}</span>
+                        )}
                       </button>
                     ))}
                   </div>
