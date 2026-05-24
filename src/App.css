@@ -2055,8 +2055,15 @@ tbody tr:hover {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 32px 80px rgba(5, 11, 22, 0.28);
-  overflow: hidden;
+  /* Allow address autocomplete dropdowns to overflow the panel */
+  overflow: visible;
   animation: modal-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Re-clip header and footer but allow body to overflow for dropdowns */
+.modal-header {
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
 }
 
 @keyframes modal-in {
@@ -6072,42 +6079,51 @@ tbody tr:hover {
 .iq-ai-trigger {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 12px 5px 6px;
+  gap: 6px;
+  padding: 2px 10px 2px 2px;
   border-radius: 20px;
   border: 1.5px solid var(--border);
-  background: var(--surface-warm);
+  background: transparent;
   cursor: pointer;
-  transition: border-color 180ms, background 180ms, box-shadow 180ms;
+  transition: border-color 180ms, box-shadow 180ms;
   position: relative;
 }
 
 .iq-ai-trigger:hover {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface-warm));
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .iq-ai-trigger--active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface-warm));
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Circle avatar container — no background, just a ring */
+.iq-ai-trigger-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+  transition: filter 200ms;
 }
 
 .iq-ai-trigger-mascot {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  filter: drop-shadow(0 1px 4px rgba(5, 11, 22, 0.15));
+  display: block;
+  filter: drop-shadow(0 1px 4px rgba(5, 11, 22, 0.18));
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms;
 }
 
 .iq-ai-trigger:hover .iq-ai-trigger-mascot {
-  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent));
-}
-
-.iq-ai-trigger:hover .iq-ai-trigger-mascot {
-  transform: scale(1.12) rotate(-4deg);
+  transform: scale(1.1) rotate(-4deg);
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 50%, transparent));
 }
 
 .iq-ai-trigger--active .iq-ai-trigger-mascot {
@@ -6127,10 +6143,10 @@ tbody tr:hover {
   color: var(--accent);
 }
 
-/* Subtle pulse ring on the trigger when closed */
+/* Subtle pulse ring on the trigger when AI is closed */
 @keyframes iq-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 30%, transparent); }
-  70% { box-shadow: 0 0 0 6px transparent; }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 30%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
@@ -6466,50 +6482,60 @@ tbody tr:hover {
   background: var(--border);
 }
 
-/* ─── Avatar button ────────────────────────────────────────────── */
+/* ─── Avatar button — fully transparent, PNG floats freely ──── */
 .iq-buddy-avatar {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   border: none;
-  background: transparent;
+  background: transparent !important;
+  -webkit-appearance: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  outline: none;
   box-shadow: none;
   transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms;
   animation: mascot-float 4s ease-in-out infinite;
   position: relative;
-  filter: drop-shadow(0 8px 16px rgba(5, 11, 22, 0.22));
 }
 
 .iq-buddy-avatar:hover {
-  transform: scale(1.12);
+  transform: scale(1.1);
   animation: none;
-  filter: drop-shadow(0 6px 20px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
-/* Teal glow ring on hover */
-.iq-buddy-avatar::after {
+/* Teal circle ring — appears on hover, NOT a filled background */
+.iq-buddy-avatar::before {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -4px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  opacity: 0;
-  transition: opacity 200ms;
+  border: 2.5px solid transparent;
+  transition: border-color 200ms, box-shadow 200ms;
+  pointer-events: none;
 }
 
-.iq-buddy-avatar:hover::after {
-  opacity: 1;
+.iq-buddy-avatar:hover::before {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .iq-buddy-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
+  background: transparent;
+  /* drop-shadow follows the PNG contour exactly, never a box */
+  filter: drop-shadow(0 6px 16px rgba(5, 11, 22, 0.25));
+  transition: filter 200ms;
+}
+
+.iq-buddy-avatar:hover .iq-buddy-img {
+  filter: drop-shadow(0 4px 18px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
 /* ─── Animation states ─────────────────────────────────────────── */
@@ -6566,6 +6592,8 @@ tbody tr:hover {
 .addr-autocomplete-wrap {
   position: relative;
   width: 100%;
+  /* Establish stacking context so suggestions float above siblings */
+  z-index: 10;
 }
 
 .addr-autocomplete-wrap input {
@@ -6597,28 +6625,41 @@ tbody tr:hover {
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(5, 11, 22, 0.14);
-  z-index: 200;
+  /* Highest z-index — must sit above modals, overlays, everything */
+  z-index: 9999;
   list-style: none;
   margin: 0;
   padding: 4px 0;
-  max-height: 220px;
+  max-height: 240px;
   overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(5, 11, 22, 0.22), 0 4px 12px rgba(5, 11, 22, 0.12);
   animation: wizard-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .addr-suggestion-item {
-  padding: 9px 14px;
+  padding: 10px 14px;
   font-size: 12.5px;
   color: var(--text);
   cursor: pointer;
   line-height: 1.45;
   transition: background 120ms;
+  border-bottom: 1px solid var(--border);
+}
+
+.addr-suggestion-item:last-child {
+  border-bottom: none;
 }
 
 .addr-suggestion-item:hover {
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   color: var(--accent);
+}
+
+.addr-no-results {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ════════════════════════════════════════════════════════════════

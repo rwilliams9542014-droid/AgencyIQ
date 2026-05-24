@@ -1505,7 +1505,9 @@ function App() {
             title="Ask IQ"
             onClick={() => setAiHelpOpen((v) => !v)}
           >
-            <img src={mascotImg} alt="" aria-hidden="true" className="iq-ai-trigger-mascot" />
+            <span className="iq-ai-trigger-ring" aria-hidden="true">
+              <img src={mascotImg} alt="" className="iq-ai-trigger-mascot" />
+            </span>
             <span className="iq-ai-trigger-label">Ask IQ</span>
           </button>
           <button className="icon-button" type="button" aria-label="Carrier portals" title="Carrier Portals" onClick={() => setModal('carrierPortal')}>
@@ -4155,6 +4157,95 @@ function EditBillingModal({ policy, onClose, onSave }: {
   )
 }
 
+// ─── Reusable address autocomplete input (Nominatim, no key needed) ─────────
+interface NominatimHit {
+  place_id: number
+  display_name: string
+  address: {
+    house_number?: string; road?: string; city?: string; town?: string
+    village?: string; county?: string; state?: string; postcode?: string
+  }
+}
+
+function AddressInput({ value, onChange, onSelect, placeholder, autoFocus }: {
+  value: string
+  onChange: (v: string) => void
+  onSelect: (parts: { street: string; city: string; state: string; zip: string; county: string }) => void
+  placeholder?: string
+  autoFocus?: boolean
+}) {
+  const [hits, setHits] = useState<NominatimHit[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrap = useRef<HTMLDivElement>(null)
+
+  const search = (q: string) => {
+    onChange(q)
+    if (debounce.current) clearTimeout(debounce.current)
+    if (q.length < 5) { setHits([]); setOpen(false); setSearched(false); return }
+    debounce.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&q=${encodeURIComponent(q)}`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        const data: NominatimHit[] = await res.json()
+        setHits(data)
+        setOpen(true)
+        setSearched(true)
+      } catch {
+        setHits([])
+        setSearched(true)
+      } finally {
+        setLoading(false)
+      }
+    }, 420)
+  }
+
+  const pick = (r: NominatimHit) => {
+    const a = r.address
+    const street = `${a.house_number ? a.house_number + ' ' : ''}${a.road ?? ''}`.trim()
+    onChange(street)
+    onSelect({ street, city: a.city ?? a.town ?? a.village ?? '', state: a.state ?? '', zip: a.postcode ?? '', county: a.county ?? '' })
+    setHits([]); setOpen(false); setSearched(false)
+  }
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div className="addr-autocomplete-wrap" ref={wrap}>
+      <input
+        value={value}
+        onChange={(e) => search(e.target.value)}
+        onFocus={() => { if (hits.length > 0) setOpen(true) }}
+        placeholder={placeholder ?? 'Start typing an address…'}
+        autoComplete="off"
+        autoFocus={autoFocus}
+      />
+      {loading && <span className="addr-loading-indicator" aria-label="Searching" />}
+      {open && (
+        <ul className="addr-suggestions" role="listbox">
+          {hits.length > 0 ? hits.map((r) => (
+            <li key={r.place_id} role="option" className="addr-suggestion-item"
+              onMouseDown={(e) => { e.preventDefault(); pick(r) }}>
+              {r.display_name}
+            </li>
+          )) : searched && !loading ? (
+            <li className="addr-no-results">No matches — enter address manually below.</li>
+          ) : null}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function EditClientModal({ client, users, onClose, onSave }: {
   client: import('./data/crmTypes').Client
   users: UserOption[]
@@ -4214,14 +4305,30 @@ function EditClientModal({ client, users, onClose, onSave }: {
           <span>Email</span>
           <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
         </label>
-        <label className="modal-field modal-field--full">
+        <div className="modal-field modal-field--full">
           <span>Mailing Address</span>
-          <input value={form.mailingAddress} onChange={(e) => set('mailingAddress', e.target.value)} />
-        </label>
-        <label className="modal-field modal-field--full">
+          <AddressInput
+            value={form.mailingAddress}
+            onChange={(v) => set('mailingAddress', v)}
+            onSelect={({ street, city, state, zip }) => {
+              const full = [street, city, state, zip].filter(Boolean).join(', ')
+              set('mailingAddress', full)
+            }}
+            placeholder="Start typing an address…"
+          />
+        </div>
+        <div className="modal-field modal-field--full">
           <span>Physical / Location Address</span>
-          <input value={form.physicalAddress} onChange={(e) => set('physicalAddress', e.target.value)} />
-        </label>
+          <AddressInput
+            value={form.physicalAddress}
+            onChange={(v) => set('physicalAddress', v)}
+            onSelect={({ street, city, state, zip }) => {
+              const full = [street, city, state, zip].filter(Boolean).join(', ')
+              set('physicalAddress', full)
+            }}
+            placeholder="Start typing an address…"
+          />
+        </div>
         <label className="modal-field">
           <span>Website</span>
           <input value={form.website} onChange={(e) => set('website', e.target.value)} placeholder="https://" />
