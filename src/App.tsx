@@ -1401,12 +1401,6 @@ function App() {
           })}
         </nav>
 
-        <IqBuddy
-          onOpen={() => setAiHelpOpen(true)}
-          activeView={activeView}
-          clientTab={clientTab}
-        />
-
         <div className="sidebar-card">
           <BriefcaseBusiness size={20} aria-hidden="true" />
           <strong>Data scoped</strong>
@@ -2955,6 +2949,13 @@ function App() {
           onSave={addLead}
         />
       )}
+
+      {/* ─── IQ Buddy draggable mascot ───────────────────────── */}
+      <IqBuddy
+        onOpen={() => setAiHelpOpen(true)}
+        activeView={activeView}
+        clientTab={clientTab}
+      />
 
       {/* ─── Toast Notifications ──────────────────────────────── */}
       {toasts.length > 0 && (
@@ -4564,10 +4565,15 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
   const [tipIndex, setTipIndex] = useState(0)
   const [showBubble, setShowBubble] = useState(false)
   const [anim, setAnim] = useState<'idle' | 'wave' | 'bounce'>('idle')
+  const [dismissed, setDismissed] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [pos, setPos] = useState({ x: window.innerWidth - 120, y: window.innerHeight - 160 })
+  const dragging = useRef(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+  const didDrag = useRef(false)
   const contextTips = getContextTips(activeView, clientTab)
   const currentTip = contextTips[tipIndex % contextTips.length]
 
-  // Reset tip index when context changes, wave to signal new tip
   useEffect(() => {
     setTipIndex(0)
     if (showBubble) {
@@ -4609,46 +4615,92 @@ function IqBuddy({ onOpen, activeView, clientTab }: {
     return () => clearTimeout(timeout)
   }, [])
 
-  return (
-    <div className={`iq-buddy iq-buddy--${anim}`}>
-      <div className="iq-buddy-row">
-        {/* Mascot on the left */}
-        <button
-          className="iq-buddy-avatar"
-          type="button"
-          aria-label="Open IQ AI assistant"
-          onClick={() => {
-            if (!showBubble) {
-              setShowBubble(true)
-              setAnim('wave')
-              setTimeout(() => setAnim('idle'), 800)
-            } else {
-              onOpen()
-            }
-          }}
-          onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
-        >
-          <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
-        </button>
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!dragging.current) return
+      didDrag.current = true
+      const nx = e.clientX - dragOffset.current.x
+      const ny = e.clientY - dragOffset.current.y
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 90, nx)),
+        y: Math.max(0, Math.min(window.innerHeight - 100, ny)),
+      })
+    }
+    const onUp = () => { dragging.current = false }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [])
 
-        {/* Bubble to the right of mascot */}
-        {showBubble && (
-          <div className="iq-buddy-bubble">
-            <button
-              className="iq-buddy-dismiss"
-              type="button"
-              aria-label="Dismiss tip"
-              onClick={(e) => { e.stopPropagation(); setShowBubble(false) }}
-            >
-              ×
-            </button>
-            <p key={`${activeView}-${clientTab}-${tipIndex}`} className="iq-buddy-tip">{currentTip}</p>
-            <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
-              Ask IQ
-            </button>
-          </div>
-        )}
-      </div>
+  if (dismissed) return null
+
+  const bubbleLeft = pos.x < window.innerWidth / 2
+
+  return (
+    <div
+      className={`iq-buddy iq-buddy--${anim}`}
+      style={{ left: pos.x, top: pos.y }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Dismiss X — visible on hover */}
+      {hovered && (
+        <button
+          className="iq-buddy-close"
+          type="button"
+          aria-label="Remove IQ Buddy"
+          onClick={() => setDismissed(true)}
+        >
+          ×
+        </button>
+      )}
+
+      {/* Speech bubble — left or right of mascot based on screen position */}
+      {showBubble && (
+        <div className={`iq-buddy-bubble iq-buddy-bubble--${bubbleLeft ? 'right' : 'left'}`}>
+          <button
+            className="iq-buddy-dismiss"
+            type="button"
+            aria-label="Dismiss tip"
+            onClick={(e) => { e.stopPropagation(); setShowBubble(false) }}
+          >
+            ×
+          </button>
+          <p key={`${activeView}-${clientTab}-${tipIndex}`} className="iq-buddy-tip">{currentTip}</p>
+          <button className="iq-buddy-ask-btn" type="button" onClick={onOpen}>
+            Ask IQ
+          </button>
+        </div>
+      )}
+
+      {/* Mascot avatar — drag handle */}
+      <button
+        className="iq-buddy-avatar"
+        type="button"
+        aria-label="Open IQ AI assistant"
+        onPointerDown={(e) => {
+          dragging.current = true
+          didDrag.current = false
+          dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }}
+        onClick={() => {
+          if (didDrag.current) return
+          if (!showBubble) {
+            setShowBubble(true)
+            setAnim('wave')
+            setTimeout(() => setAnim('idle'), 800)
+          } else {
+            onOpen()
+          }
+        }}
+        onMouseEnter={() => { if (anim === 'idle') { setAnim('bounce'); setTimeout(() => setAnim('idle'), 600) } }}
+      >
+        <img src={mascotImg} alt="IQ assistant" className="iq-buddy-img" />
+      </button>
     </div>
   )
 }

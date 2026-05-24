@@ -10,6 +10,7 @@
   --sidebar-border: rgba(255, 255, 255, 0.12);
   --sidebar-muted: #a9bdc2;
   --sidebar-text: #d8e5e7;
+  --surface: #ffffff;
   --surface-muted: #f3f7f6;
   --surface-warm: #fbf8f1;
   --text: #26333a;
@@ -230,6 +231,7 @@
   --border: rgba(148, 163, 184, 0.18);
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
   --sidebar-border: rgba(255, 255, 255, 0.1);
+  --surface: rgba(18, 33, 38, 0.9);
   --surface-muted: #0f1f24;
   --surface-warm: #14272a;
   --text: #cbd5d8;
@@ -241,6 +243,7 @@
 .app-shell[data-mode='dark'][data-palette='sapphire'] {
   --accent-soft: rgba(96, 165, 250, 0.14);
   --gold-soft: rgba(45, 212, 191, 0.14);
+  --surface: #111c31;
   --surface-muted: #0f172a;
   --surface-warm: #111c31;
 }
@@ -248,6 +251,7 @@
 .app-shell[data-mode='dark'][data-palette='graphite'] {
   --accent-soft: rgba(251, 191, 36, 0.14);
   --gold-soft: rgba(217, 119, 6, 0.16);
+  --surface: #1e293b;
   --surface-muted: #0b1120;
   --surface-warm: #111827;
 }
@@ -255,6 +259,7 @@
 .app-shell[data-mode='dark'][data-palette='agencyiq'] {
   --accent-soft: rgba(24, 212, 195, 0.14);
   --gold-soft: rgba(245, 178, 27, 0.16);
+  --surface: #0d1722;
   --surface-muted: #06101b;
   --surface-warm: #0d1722;
 }
@@ -262,6 +267,7 @@
 .app-shell[data-mode='dark'][data-palette='evergreen'] {
   --accent-soft: rgba(47, 125, 98, 0.18);
   --gold-soft: rgba(183, 121, 31, 0.16);
+  --surface: #172721;
   --surface-muted: #0f211b;
   --surface-warm: #172721;
 }
@@ -269,6 +275,7 @@
 .app-shell[data-mode='dark'][data-palette='plum'] {
   --accent-soft: rgba(124, 58, 237, 0.16);
   --gold-soft: rgba(15, 118, 110, 0.16);
+  --surface: #251a2a;
   --surface-muted: #201625;
   --surface-warm: #251a2a;
 }
@@ -276,6 +283,7 @@
 .app-shell[data-mode='dark'][data-palette='classic'] {
   --accent-soft: rgba(96, 165, 250, 0.16);
   --gold-soft: rgba(148, 163, 184, 0.14);
+  --surface: #1f2937;
   --surface-muted: #111827;
   --surface-warm: #1f2937;
 }
@@ -284,6 +292,7 @@
   --accent-soft: rgba(45, 212, 191, 0.18);
   --gold-soft: rgba(229, 231, 235, 0.13);
   --border: rgba(229, 231, 235, 0.28);
+  --surface: #111827;
   --surface-muted: #030712;
   --surface-warm: #111827;
   --text: #f9fafb;
