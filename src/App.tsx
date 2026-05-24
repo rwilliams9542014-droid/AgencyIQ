@@ -1508,6 +1508,16 @@ function App() {
               </div>
             )}
           </div>
+          <button
+            className={`iq-ai-trigger${aiHelpOpen ? ' iq-ai-trigger--active' : ''}`}
+            type="button"
+            aria-label="Open AgencyIQ AI assistant"
+            title="Ask IQ"
+            onClick={() => setAiHelpOpen((v) => !v)}
+          >
+            <img src={mascotImg} alt="" aria-hidden="true" className="iq-ai-trigger-mascot" />
+            <span className="iq-ai-trigger-label">Ask IQ</span>
+          </button>
           <button className="icon-button" type="button" aria-label="Carrier portals" title="Carrier Portals" onClick={() => setModal('carrierPortal')}>
             <SlidersHorizontal size={19} aria-hidden="true" />
           </button>
