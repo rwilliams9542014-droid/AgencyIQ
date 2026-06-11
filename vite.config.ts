@@ -37,6 +37,17 @@ const acordTemplateChecks = () => ({
       res.end(JSON.stringify({ templates: checks }, null, 2))
     })
   },
+  closeBundle() {
+    const distTemplateDir = path.resolve(process.cwd(), 'dist', 'acord-templates')
+    if (!fs.existsSync(distTemplateDir)) return
+
+    for (const entry of fs.readdirSync(distTemplateDir)) {
+      if (!entry.toLowerCase().endsWith('.pdf')) continue
+      const templatePath = path.join(distTemplateDir, entry)
+      fs.rmSync(templatePath, { force: true })
+      console.warn(`[AgencyIQ] Removed licensed ACORD template from production bundle: ${templatePath}`)
+    }
+  },
 })
 
 // https://vite.dev/config/

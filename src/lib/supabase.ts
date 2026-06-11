@@ -2,12 +2,22 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const placeholderValues = new Set([
+  '',
+  'https://your-project-ref.supabase.co',
+  'your-supabase-anon-key',
+])
 
-export const supabaseFunctionsUrl = supabaseUrl ? `${supabaseUrl}/functions/v1` : ''
-export const supabasePublicAnonKey = supabaseAnonKey
+const hasRealSupabaseConfig =
+  !placeholderValues.has(supabaseUrl ?? '') &&
+  !placeholderValues.has(supabaseAnonKey ?? '')
+
+export const supabaseConfigured = hasRealSupabaseConfig
+export const supabaseFunctionsUrl = hasRealSupabaseConfig ? `${supabaseUrl}/functions/v1` : ''
+export const supabasePublicAnonKey = hasRealSupabaseConfig ? supabaseAnonKey : ''
 
 export const supabase =
-  supabaseUrl && supabaseAnonKey
+  hasRealSupabaseConfig
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null
 

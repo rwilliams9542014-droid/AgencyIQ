@@ -6,6 +6,7 @@ import { IvansPanel } from './components/IvansPanel'
 import { AcordFormsPanel } from './components/AcordFormsPanel'
 import { NewClientWizard } from './components/NewClientWizard'
 import { supabase, supabaseFunctionsUrl, supabasePublicAnonKey, type CarrierAccess } from './lib/supabase'
+import { clearSession } from './lib/sessionGuard'
 import { createExportJob, createImportBatch, downloadJsonExport, guessImportMapping, IMPORT_FIELDS, parseCsvText, parsePortableDataset, type ImportMapping, type ImportPreview } from './lib/dataPortability'
 import mascotImg from './assets/IQ_MASCOT-removebg-preview.png'
 import type { AcordDraft, ClaimRecord, ClaimStatus, Client, ClientCloudFolder, CloudDocumentFolderProvider, CrmDataset, OpportunityStage, PaymentLedgerEntry, Policy, PolicyBilling, PolicyTransaction, PolicyTransactionStatus, PolicyTransactionType, RelatedParty, RelatedPartyType, RiskAsset, RiskAssetType, UserRole } from './data/crmTypes'
@@ -2204,6 +2205,29 @@ function App() {
     showToast(`Switched to ${user.name}`)
   }
 
+  const handleSignOut = async () => {
+    setUserMenuOpen(false)
+
+    if (!supabase) {
+      showToast('Signed out of demo mode')
+      setTimeout(() => window.location.reload(), 1500)
+      return
+    }
+
+    const { data } = await supabase.auth.getUser()
+    if (data.user?.id) {
+      await clearSession(data.user.id)
+    }
+
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      showToast(error.message)
+      return
+    }
+
+    showToast('Signed out')
+  }
+
   const showToast = (message: string) => {
     const id = ++toastCounter.current
     setToasts((prev) => [...prev, { id, message }])
@@ -3520,7 +3544,7 @@ function App() {
                 <button
                   className="user-menu-item user-menu-signout"
                   type="button"
-                  onClick={() => { setUserMenuOpen(false); showToast('Signed out (demo — page will reload)'); setTimeout(() => window.location.reload(), 1500) }}
+                  onClick={handleSignOut}
                 >
                   Sign out
                 </button>

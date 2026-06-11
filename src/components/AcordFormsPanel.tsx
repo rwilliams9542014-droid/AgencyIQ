@@ -426,7 +426,7 @@ export function AcordFormsPanel({
           </div>
         )}
         <p className="acord-template-note">
-          Put licensed templates in <strong>public/acord-templates</strong>. The first active file path is <strong>public/acord-templates/acord-125.pdf</strong>.
+          Use <strong>VITE_ACORD_TEMPLATE_BASE_URL</strong> for production templates. Local development can read <strong>public/acord-templates/acord-125.pdf</strong>.
         </p>
       </section>
     </section>

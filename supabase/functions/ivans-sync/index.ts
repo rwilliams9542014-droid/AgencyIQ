@@ -1,11 +1,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "http://localhost:5173,http://127.0.0.1:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigins[0] ?? "http://localhost:5173",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
+
+const allowIvansDemoMode = Deno.env.get("ALLOW_IVANS_DEMO_MODE") === "true";
 
 // ─── IVANS Cloud API Client ───────────────────────────────────────────────────
 // IVANS Exchange / IVANS Cloud uses a REST API with OAuth 2.0 bearer tokens.
@@ -46,7 +53,7 @@ class IvansClient {
 
       if (!resp.ok) {
         // Demo mode: simulate successful auth when IVANS endpoint unreachable
-        if (this.baseUrl.includes("ivansinsurance.com")) {
+        if (allowIvansDemoMode && this.baseUrl.includes("ivansinsurance.com")) {
           console.warn("IVANS endpoint not reachable — running in demo mode");
           this.accessToken = "demo-token";
           return true;
@@ -58,10 +65,11 @@ class IvansClient {
       this.accessToken = data.access_token;
       return !!this.accessToken;
     } catch {
-      // Network error — enter demo mode
-      console.warn("IVANS auth network error — running in demo mode");
-      this.accessToken = "demo-token";
-      return true;
+      if (allowIvansDemoMode) {
+        this.accessToken = "demo-token";
+        return true;
+      }
+      return false;
     }
   }
 
@@ -82,9 +90,13 @@ class IvansClient {
         },
       });
 
-      if (!resp.ok) return this.getDemoFiles();
+      if (!resp.ok) {
+        if (allowIvansDemoMode) return this.getDemoFiles();
+        throw new Error("Unable to list IVANS download files.");
+      }
       return await resp.json();
     } catch {
+      if (!allowIvansDemoMode) throw new Error("Unable to list IVANS download files.");
       return this.getDemoFiles();
     }
   }
@@ -103,9 +115,13 @@ class IvansClient {
         },
       });
 
-      if (!resp.ok) return this.getDemoFileContent(fileId);
+      if (!resp.ok) {
+        if (allowIvansDemoMode) return this.getDemoFileContent(fileId);
+        throw new Error(`Unable to download IVANS file ${fileId}.`);
+      }
       return await resp.text();
     } catch {
+      if (!allowIvansDemoMode) throw new Error(`Unable to download IVANS file ${fileId}.`);
       return this.getDemoFileContent(fileId);
     }
   }

@@ -32,7 +32,19 @@ export class AcordTemplateError extends Error {
   }
 }
 
-const templateUrl = (templateFile: string) => `/acord-templates/${templateFile}`
+const acordTemplateBaseUrl = (import.meta.env.VITE_ACORD_TEMPLATE_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+
+const templateUrl = (templateFile: string) => {
+  if (acordTemplateBaseUrl) {
+    return `${acordTemplateBaseUrl}/${encodeURIComponent(templateFile)}`
+  }
+
+  if (import.meta.env.PROD) {
+    throw new AcordTemplateError('ACORD templates must be served from an authorized private template URL in production.')
+  }
+
+  return `/acord-templates/${templateFile}`
+}
 
 const bytesHeader = (bytes: ArrayBuffer, length = 5) => {
   return new TextDecoder('utf-8').decode(new Uint8Array(bytes).subarray(0, length))
