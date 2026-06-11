@@ -4,7 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import LandingPage from './LandingPage.tsx'
 
-function Root() {
+export function Root() {
   // Start in CRM if the URL path is /app, otherwise show the landing page
   const [view, setView] = useState<'landing' | 'app'>(() =>
     window.location.pathname === '/app' ? 'app' : 'landing'

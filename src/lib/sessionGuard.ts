@@ -16,6 +16,8 @@ function getOrCreateToken(): string {
 // Upserts the session row — overwrites any prior session for this user,
 // which will cause the other device to be kicked on its next heartbeat.
 export async function registerSession(userId: string): Promise<void> {
+  if (!supabase) return
+
   const token = getOrCreateToken()
   await supabase.from('active_sessions').upsert(
     {
@@ -31,6 +33,8 @@ export async function registerSession(userId: string): Promise<void> {
 
 // Returns true if this tab still owns the active session.
 export async function validateSession(userId: string): Promise<boolean> {
+  if (!supabase) return true
+
   const token = sessionStorage.getItem('iq_session_token')
   if (!token) return false
   const { data } = await supabase
@@ -43,6 +47,8 @@ export async function validateSession(userId: string): Promise<boolean> {
 
 // Updates last_seen_at to signal this session is alive.
 export async function heartbeat(userId: string): Promise<void> {
+  if (!supabase) return
+
   const token = sessionStorage.getItem('iq_session_token')
   if (!token) return
   await supabase
@@ -55,6 +61,8 @@ export async function heartbeat(userId: string): Promise<void> {
 // Called on logout.
 export async function clearSession(userId: string): Promise<void> {
   sessionStorage.removeItem('iq_session_token')
+  if (!supabase) return
+
   await supabase.from('active_sessions').delete().eq('user_id', userId)
 }
 

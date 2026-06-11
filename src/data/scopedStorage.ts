@@ -26,6 +26,13 @@ const migrateDataset = (dataset: CrmDataset): CrmDataset => {
     renewals: mergeById(seeded.renewals, bulk.renewals),
     tasks: mergeById(seeded.tasks, bulk.tasks),
     notes: mergeById(seeded.notes, bulk.notes),
+    relatedParties: seeded.relatedParties,
+    policyTransactions: seeded.policyTransactions,
+    claims: seeded.claims,
+    riskAssets: seeded.riskAssets,
+    paymentLedger: seeded.paymentLedger,
+    commissionStatements: seeded.commissionStatements,
+    clientCloudFolders: seeded.clientCloudFolders,
   }
 
   if (!Array.isArray(dataset.clients) || dataset.clients.filter((c) => c.id.startsWith('client-bulk-')).length < 50) {
@@ -52,6 +59,35 @@ const migrateDataset = (dataset: CrmDataset): CrmDataset => {
     quoteRequests: Array.isArray(dataset.quoteRequests) ? dataset.quoteRequests : seeded.quoteRequests,
     carrierResources: Array.isArray(dataset.carrierResources) ? dataset.carrierResources : seeded.carrierResources,
     notes: mergeById(mergeById(dataset.notes, seeded.notes), bulk.notes),
+    relatedParties: mergeById(
+      Array.isArray(dataset.relatedParties) ? dataset.relatedParties : [],
+      seeded.relatedParties,
+    ),
+    policyTransactions: mergeById(
+      Array.isArray(dataset.policyTransactions) ? dataset.policyTransactions : [],
+      seeded.policyTransactions,
+    ),
+    claims: mergeById(
+      Array.isArray(dataset.claims) ? dataset.claims : [],
+      seeded.claims,
+    ),
+    riskAssets: mergeById(
+      Array.isArray(dataset.riskAssets) ? dataset.riskAssets : [],
+      seeded.riskAssets,
+    ),
+    paymentLedger: mergeById(
+      Array.isArray(dataset.paymentLedger) ? dataset.paymentLedger : [],
+      seeded.paymentLedger,
+    ),
+    commissionStatements: mergeById(
+      Array.isArray(dataset.commissionStatements) ? dataset.commissionStatements : [],
+      seeded.commissionStatements,
+    ),
+    acordDrafts: Array.isArray(dataset.acordDrafts) ? dataset.acordDrafts : [],
+    clientCloudFolders: mergeById(
+      Array.isArray(dataset.clientCloudFolders) ? dataset.clientCloudFolders : [],
+      seeded.clientCloudFolders,
+    ),
   }
 }
 
@@ -96,6 +132,14 @@ export const loadDataset = (
       renewals: mergeById(seeded.renewals, bulk.renewals),
       tasks: mergeById(seeded.tasks, bulk.tasks),
       notes: mergeById(seeded.notes, bulk.notes),
+      relatedParties: seeded.relatedParties,
+      policyTransactions: seeded.policyTransactions,
+      claims: seeded.claims,
+      riskAssets: seeded.riskAssets,
+      paymentLedger: seeded.paymentLedger,
+      commissionStatements: seeded.commissionStatements,
+      acordDrafts: [],
+      clientCloudFolders: seeded.clientCloudFolders,
     }
     localStorage.setItem(key, JSON.stringify(full))
     return full

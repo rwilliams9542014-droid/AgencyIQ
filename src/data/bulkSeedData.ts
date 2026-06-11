@@ -316,7 +316,7 @@ export function createBulkSeedData(): {
       health: raw.health,
       clientSince: raw.clientSince,
       lastContactedAt: raw.lastContactedAt,
-      preferredContactMethod: (['Phone', 'Email', 'Email', 'Text', 'Portal'] as const)[idx % 5],
+      preferredContactMethod: (['Phone', 'Email', 'Email', 'Phone', 'Portal'] as const)[idx % 5],
     }
     clients.push(client)
 

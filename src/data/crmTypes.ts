@@ -54,7 +54,7 @@ export type Client = {
   email?: string
   phone?: string
   alternatePhone?: string
-  preferredContactMethod?: 'Phone' | 'Email' | 'Text' | 'Portal'
+  preferredContactMethod?: 'Phone' | 'Email' | 'Portal'
   // ─── Address ─────────────────────────────────────────────────────
   mailingAddress?: string
   physicalAddress?: string
@@ -78,7 +78,7 @@ export type Client = {
   health: 'Strong' | 'Needs review' | 'At risk'
 }
 
-export type PaymentMethod = 'Credit Card' | 'ACH / Bank Draft' | 'Check' | 'Cash' | 'Money Order' | 'Escrow / Mortgagee' | 'Premium Finance' | 'Online Portal' | 'Other'
+export type PaymentMethod = 'Credit Card' | 'ACH / Bank Draft' | 'Check' | 'Cash' | 'Money Order' | 'Escrow / Mortgagee' | 'Premium Finance' | 'Online Portal' | 'Merchant / Card Processor' | 'Other'
 export type PaymentPlanType = 'Annual (paid in full)' | 'Semi-Annual (2 pay)' | 'Quarterly (4 pay)' | '10-Pay' | 'Monthly (EFT)' | 'Monthly (CC)' | 'Financed' | 'Escrow / Mortgage' | 'Other'
 export type BillingResponsibility = 'Insured pays carrier direct' | 'Agency collects & remits' | 'Mortgagee / Escrow pays' | 'Finance company pays carrier'
 
@@ -128,6 +128,7 @@ export type Policy = {
   paymentStatus?: 'Current' | 'Due soon' | 'Past due' | 'Paid in full'
   renewalStatus?: 'Not started' | 'Review needed' | 'Marketing' | 'Quoted' | 'Ready to bind' | 'Renewed'
   limits?: string
+  coverageDetails?: Record<string, string>
   mortgageeOrLienholder?: string
   downPayment?: number
   monthlyPayment?: number
@@ -147,6 +148,164 @@ export type Policy = {
     | 'Renewal review'
     | 'Quoted'
     | 'Bound'
+}
+
+export type RelatedPartyType =
+  | 'Additional Contact'
+  | 'Certificate Holder'
+  | 'Mortgagee'
+  | 'Lienholder'
+  | 'Additional Insured'
+  | 'Loss Payee'
+  | 'Finance Company'
+  | 'Property Manager'
+  | 'Bookkeeper'
+  | 'Emergency Contact'
+
+export type RelatedParty = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId?: string
+  type: RelatedPartyType
+  name: string
+  contactName?: string
+  email?: string
+  phone?: string
+  address?: string
+  referenceNumber?: string
+  preference?: 'Phone' | 'Email' | 'Mail'
+  isPrimary?: boolean
+  doNotEmail?: boolean
+  doNotCall?: boolean
+  notes?: string
+}
+
+export type PolicyTransactionType =
+  | 'New Business'
+  | 'Renewal'
+  | 'Endorsement'
+  | 'Cancellation'
+  | 'Reinstatement'
+  | 'Rewrite'
+  | 'Non-Renewal'
+  | 'Binder'
+  | 'Broker of Record'
+
+export type PolicyTransactionStatus =
+  | 'Requested'
+  | 'Sent to Carrier'
+  | 'Received'
+  | 'Invoiced'
+  | 'Delivered to Client'
+  | 'Completed'
+  | 'Cancelled'
+
+export type PolicyTransaction = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId: string
+  type: PolicyTransactionType
+  status: PolicyTransactionStatus
+  effectiveDate?: string
+  requestedDate?: string
+  completedDate?: string
+  premiumChange?: number
+  binderNumber?: string
+  description: string
+  carrierContact?: string
+  requestedBy?: string
+  notes?: string
+}
+
+export type ClaimStatus = 'Open' | 'Pending' | 'Closed' | 'Denied' | 'Reopened'
+
+export type ClaimRecord = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId?: string
+  claimNumber?: string
+  carrierClaimNumber?: string
+  dateOfLoss: string
+  reportedDate?: string
+  status: ClaimStatus
+  adjusterName?: string
+  adjusterPhone?: string
+  adjusterEmail?: string
+  paidAmount?: number
+  reserveAmount?: number
+  description: string
+  documentsStatus?: 'Needed' | 'Requested' | 'Received' | 'Reviewed'
+  includeInLossRuns?: boolean
+  followUpDate?: string
+  notes?: string
+}
+
+export type RiskAssetType = 'Commercial Location' | 'Vehicle' | 'Driver' | 'Property'
+
+export type RiskAsset = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId?: string
+  type: RiskAssetType
+  name: string
+  status?: 'Active' | 'Inactive' | 'Needs review'
+  address?: string
+  year?: string
+  make?: string
+  model?: string
+  vin?: string
+  driverName?: string
+  driverLicenseNumber?: string
+  driverLicenseState?: string
+  dateOfBirth?: string
+  annualMileage?: number
+  usage?: string
+  payroll?: number
+  annualSales?: number
+  squareFootage?: number
+  constructionType?: string
+  occupancy?: string
+  roofYear?: string
+  protectionClass?: string
+  notes?: string
+}
+
+export type PaymentLedgerEntry = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId?: string
+  paymentDate: string
+  amount: number
+  method: PaymentMethod
+  referenceNumber?: string
+  receiptNumber?: string
+  postedBy: string
+  status: 'Posted' | 'Pending' | 'Returned' | 'Voided'
+  remitTo?: string
+  remittanceDueDate?: string
+  carrierPayableAmount?: number
+  remittanceStatus?: 'Not Due' | 'Needs Remittance' | 'Scheduled' | 'Paid' | 'On Hold'
+  notes?: string
+}
+
+export type CommissionStatement = {
+  id: string
+  accountId: string
+  clientId: string
+  policyId?: string
+  carrier: string
+  statementDate: string
+  premium: number
+  commissionRate: number
+  commissionAmount: number
+  producerUserId?: string
+  status: 'Expected' | 'Received' | 'Reconciled' | 'Disputed'
+  notes?: string
 }
 
 export type Renewal = {
@@ -177,7 +336,7 @@ export type Task = {
   status?: 'Open' | 'In Progress' | 'Completed'
 }
 
-export type OpportunityStage = 'New lead' | 'Discovery' | 'Quoting' | 'Proposal' | 'Bound'
+export type OpportunityStage = 'New lead' | 'Discovery' | 'Quoting' | 'Proposal' | 'Bound' | 'Lost'
 
 export type Opportunity = {
   id: string
@@ -219,6 +378,45 @@ export type ClientNote = {
   body: string
 }
 
+export type AcordFormStatus = 'draft' | 'generated' | 'completed'
+
+export type AcordDraft = {
+  id: string
+  accountId: string
+  clientId: string
+  formType: string
+  formTitle: string
+  answers: Record<string, string>
+  status: AcordFormStatus
+  generatedFileName?: string
+  generatedAt?: string
+  createdByUserId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type CloudDocumentFolderProvider =
+  | 'google_drive'
+  | 'microsoft_onedrive'
+  | 'dropbox'
+  | 'box'
+  | 'other'
+
+export type ClientCloudFolder = {
+  id: string
+  accountId: string
+  clientId: string
+  provider: CloudDocumentFolderProvider
+  folderName: string
+  folderUrl: string
+  folderId?: string
+  notes?: string
+  connectedBy: string
+  createdAt: string
+  updatedAt: string
+  active: boolean
+}
+
 export type CrmDataset = {
   agency: AgencyAccount
   currentUser: UserProfile
@@ -231,4 +429,12 @@ export type CrmDataset = {
   quoteRequests: QuoteRequest[]
   carrierResources: CarrierResource[]
   notes: ClientNote[]
+  relatedParties: RelatedParty[]
+  policyTransactions: PolicyTransaction[]
+  claims: ClaimRecord[]
+  riskAssets: RiskAsset[]
+  paymentLedger: PaymentLedgerEntry[]
+  commissionStatements: CommissionStatement[]
+  acordDrafts: AcordDraft[]
+  clientCloudFolders: ClientCloudFolder[]
 }

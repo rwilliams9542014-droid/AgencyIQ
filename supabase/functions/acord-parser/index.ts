@@ -8,18 +8,6 @@ const corsHeaders = {
 };
 
 // ─── ACORD Transaction Type Codes ────────────────────────────────────────────
-const ACORD_TRANSACTIONS: Record<string, string> = {
-  NB: "New Business",
-  RN: "Renewal",
-  EN: "Endorsement",
-  XL: "Cancellation",
-  RI: "Reinstatement",
-  AU: "Audit",
-  BL: "Billing",
-  PC: "Policy Change",
-  WP: "Watercraft Policy",
-};
-
 // ─── ACORD Line of Business Codes ────────────────────────────────────────────
 const ACORD_LOB_CODES: Record<string, string> = {
   HOME: "Homeowners",
@@ -58,7 +46,7 @@ function parseAcordXml(xml: string): ParsedAcordPolicy[] {
     try {
       const policy = extractPolicyFromBlock(block, xml);
       if (policy) results.push(policy);
-    } catch (_e) {
+    } catch {
       // Skip malformed block
     }
   }

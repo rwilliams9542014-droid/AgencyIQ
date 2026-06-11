@@ -1,5 +1,4 @@
 # AgencyIQ
-<<<<<<< HEAD
 
 Insurance agency management CRM foundation built with React, TypeScript, and Vite.
 
@@ -38,6 +37,3 @@ npm run build
 - Move the current scoped localStorage data layer into the backend database.
 - Enforce role permissions on the backend, not only in the frontend UI.
 - Dedicated client files, notes, reminders, renewal workflows, and future document storage.
-=======
-CRM
->>>>>>> 961e5eaa529a6b240e7584351c7fe230f0855939

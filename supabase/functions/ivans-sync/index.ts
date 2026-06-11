@@ -57,7 +57,7 @@ class IvansClient {
       const data = await resp.json();
       this.accessToken = data.access_token;
       return !!this.accessToken;
-    } catch (_e) {
+    } catch {
       // Network error — enter demo mode
       console.warn("IVANS auth network error — running in demo mode");
       this.accessToken = "demo-token";
@@ -84,13 +84,13 @@ class IvansClient {
 
       if (!resp.ok) return this.getDemoFiles();
       return await resp.json();
-    } catch (_e) {
+    } catch {
       return this.getDemoFiles();
     }
   }
 
   // Download a specific file by its IVANS file ID
-  async downloadFile(fileId: string, _fileName: string): Promise<string> {
+  async downloadFile(fileId: string): Promise<string> {
     if (this.accessToken === "demo-token") {
       return this.getDemoFileContent(fileId);
     }
@@ -105,7 +105,7 @@ class IvansClient {
 
       if (!resp.ok) return this.getDemoFileContent(fileId);
       return await resp.text();
-    } catch (_e) {
+    } catch {
       return this.getDemoFileContent(fileId);
     }
   }
@@ -118,7 +118,7 @@ class IvansClient {
         method: "POST",
         headers: { Authorization: `Bearer ${this.accessToken}` },
       });
-    } catch (_e) {
+    } catch {
       // Non-fatal — IVANS will re-deliver unacknowledged files next cycle
     }
   }

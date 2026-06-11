@@ -43,33 +43,44 @@ export function IvansPanel({ accountId, onMergePolicy, currency, formatDate }: I
   const [addingConnection, setAddingConnection] = useState(false)
   const [uploadModal, setUploadModal] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
+  const supabaseClient = supabase
 
   const notify = (msg: string) => { setNotification(msg); setTimeout(() => setNotification(null), 3500) }
 
   const load = useCallback(async () => {
+    if (!supabaseClient) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     const [{ data: conns }, { data: log }, { data: policies }] = await Promise.all([
-      supabase.from('ivans_connections').select('*').eq('account_id', accountId).order('created_at', { ascending: false }),
-      supabase.from('ivans_sync_log').select('*').eq('account_id', accountId).order('started_at', { ascending: false }).limit(20),
-      supabase.from('ivans_policy_sync').select('*').eq('account_id', accountId).order('synced_at', { ascending: false }).limit(100),
+      supabaseClient.from('ivans_connections').select('*').eq('account_id', accountId).order('created_at', { ascending: false }),
+      supabaseClient.from('ivans_sync_log').select('*').eq('account_id', accountId).order('started_at', { ascending: false }).limit(20),
+      supabaseClient.from('ivans_policy_sync').select('*').eq('account_id', accountId).order('synced_at', { ascending: false }).limit(100),
     ])
     setConnections((conns as IvansConnection[]) ?? [])
     setSyncLog((log as IvansSyncLog[]) ?? [])
     setSyncedPolicies((policies as IvansPolicySync[]) ?? [])
     setLoading(false)
-  }, [accountId])
+  }, [accountId, supabaseClient])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
 
   // Realtime subscription for sync log updates
   useEffect(() => {
-    const channel = supabase
+    if (!supabaseClient) return
+
+    const channel = supabaseClient
       .channel(`ivans-sync-log-${accountId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ivans_sync_log', filter: `account_id=eq.${accountId}` }, () => { load() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ivans_policy_sync', filter: `account_id=eq.${accountId}` }, () => { load() })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [accountId, load])
+    return () => { supabaseClient.removeChannel(channel) }
+  }, [accountId, load, supabaseClient])
 
   const triggerSync = async (connectionId: string) => {
     setSyncing(connectionId)
@@ -96,13 +107,27 @@ export function IvansPanel({ accountId, onMergePolicy, currency, formatDate }: I
   }
 
   const markMerged = async (policyId: string, mergeStatus: 'merged' | 'skipped') => {
-    await supabase.from('ivans_policy_sync').update({ merge_status: mergeStatus, agent_notified: true }).eq('id', policyId)
+    if (!supabaseClient) return
+
+    await supabaseClient.from('ivans_policy_sync').update({ merge_status: mergeStatus, agent_notified: true }).eq('id', policyId)
     await load()
   }
 
   const pendingRenewals = syncedPolicies.filter((p) => p.renewal_status === 'renewal_pending' && p.merge_status !== 'merged' && p.merge_status !== 'skipped')
   const unmatched = syncedPolicies.filter((p) => p.merge_status === 'unmatched')
   const lastSync = syncLog.find((l) => l.status === 'completed')
+
+  if (!supabaseClient) {
+    return (
+      <div className="ivans-panel">
+        <div className="ivans-empty">
+          <CloudOff size={28} />
+          <h3>Supabase is not configured</h3>
+          <p>Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable IVANS sync.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="ivans-panel">
@@ -483,9 +508,18 @@ function IvansConnections({
   const [saving, setSaving] = useState(false)
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }))
 
-  useEffect(() => { if (forceAdd) setShowForm(true) }, [forceAdd])
+  useEffect(() => {
+    if (!forceAdd) return
+    const timer = window.setTimeout(() => setShowForm(true), 0)
+    return () => window.clearTimeout(timer)
+  }, [forceAdd])
 
   const save = async () => {
+    if (!supabase) {
+      notify('Supabase is not configured')
+      return
+    }
+
     if (!form.carrier_name.trim() || !form.ivans_subscriber_id.trim()) {
       notify('Carrier name and Subscriber ID are required')
       return
@@ -509,6 +543,11 @@ function IvansConnections({
   }
 
   const deleteConnection = async (id: string, name: string) => {
+    if (!supabase) {
+      notify('Supabase is not configured')
+      return
+    }
+
     if (!confirm(`Remove carrier connection for "${name}"? This will not delete downloaded policy data.`)) return
     await supabase.from('ivans_connections').delete().eq('id', id)
     notify(`Removed ${name}`)
@@ -516,6 +555,11 @@ function IvansConnections({
   }
 
   const togglePause = async (conn: IvansConnection) => {
+    if (!supabase) {
+      notify('Supabase is not configured')
+      return
+    }
+
     const newStatus = conn.status === 'paused' ? 'active' : 'paused'
     await supabase.from('ivans_connections').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', conn.id)
     notify(`${conn.carrier_name} ${newStatus === 'paused' ? 'paused' : 'resumed'}`)

@@ -74,6 +74,7 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
   const [form, setForm] = useState({ name: '', agency: '', email: '', phone: '', message: '' })
   const [mascotClicks, setMascotClicks] = useState(0)
   const [mascotZapping, setMascotZapping] = useState(false)
+  const [lightningOrigin, setLightningOrigin] = useState<{ x: number; y: number } | null>(null)
   const heroRef = useRef<HTMLDivElement>(null)
   const mascotRef = useRef<HTMLImageElement>(null)
 
@@ -82,16 +83,17 @@ export default function LandingPage({ onEnterCrm }: { onEnterCrm: () => void }) 
     const next = mascotClicks + 1
     setMascotClicks(next)
     if (next >= 3) {
+      const rect = mascotRef.current?.getBoundingClientRect()
+      setLightningOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null)
       setMascotZapping(true)
       setTimeout(() => { setMascotZapping(false); setMascotClicks(0) }, 2000)
     }
   }
 
   const renderLpLightning = () => {
-    if (!mascotZapping || !mascotRef.current) return null
-    const rect = mascotRef.current.getBoundingClientRect()
-    const cx = rect.left + rect.width / 2
-    const cy = rect.top + rect.height / 2
+    if (!mascotZapping || !lightningOrigin) return null
+    const cx = lightningOrigin.x
+    const cy = lightningOrigin.y
     const W = window.innerWidth
     const H = window.innerHeight
     type BoltDef = { pts: string; delay: number; branches: string[] }

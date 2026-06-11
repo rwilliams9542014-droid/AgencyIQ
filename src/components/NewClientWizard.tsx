@@ -42,6 +42,13 @@ const emptyData = (): WizardData => ({
   assignedProducerId: '', assignedCsrId: '', billingMethod: '', notes: '',
 })
 
+const formatPhoneInput = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 // ─── Step definitions — mascot tips are pure agent coaching, no tech jargon ──
 type Step = { id: string; label: string; mascotTip: string; fields: string[] }
 
@@ -61,7 +68,7 @@ const PERSONAL_STEPS: Step[] = [
   {
     id: 'contact',
     label: 'Contact Info',
-    mascotTip: "Add the best way to reach this client. A cell phone and email are ideal. If they prefer texts or calls at a specific number, note that here so the whole team knows how to reach them.",
+    mascotTip: "Add the best way to reach this client. A direct phone number and email are ideal. If they prefer calls at a specific number, note that here so the whole team knows how to reach them.",
     fields: ['email', 'phone', 'alternatePhone', 'preferredContactMethod'],
   },
   {
@@ -130,11 +137,13 @@ export function NewClientWizard({
     setData((d) => ({ ...d, [key]: val }))
 
   useEffect(() => {
-    setMascotState('talk')
-    setTipVisible(false)
-    const t1 = setTimeout(() => setTipVisible(true), 120)
-    const t2 = setTimeout(() => setMascotState('idle'), 1400)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    const t0 = window.setTimeout(() => {
+      setMascotState('talk')
+      setTipVisible(false)
+    }, 0)
+    const t1 = window.setTimeout(() => setTipVisible(true), 120)
+    const t2 = window.setTimeout(() => setMascotState('idle'), 1400)
+    return () => { window.clearTimeout(t0); window.clearTimeout(t1); window.clearTimeout(t2) }
   }, [stepIndex])
 
   useEffect(() => {
@@ -553,15 +562,15 @@ function ContactFields({ data, set, firstFieldRef, showPrimaryContact }: {
         <input ref={showPrimaryContact ? undefined : firstFieldRef} type="email" value={data.email} onChange={(e) => set('email', e.target.value)} placeholder="client@email.com" autoComplete="email" />
       </WField>
       <WField label="Phone" full={false}>
-        <input type="tel" value={data.phone} onChange={(e) => set('phone', e.target.value)} placeholder="(555) 000-0000" autoComplete="tel" />
+        <input type="tel" value={data.phone} onChange={(e) => set('phone', formatPhoneInput(e.target.value))} placeholder="(555) 000-0000" autoComplete="tel" />
       </WField>
       <WField label="Alternate Phone" full={false}>
-        <input type="tel" value={data.alternatePhone} onChange={(e) => set('alternatePhone', e.target.value)} placeholder="Optional" />
+        <input type="tel" value={data.alternatePhone} onChange={(e) => set('alternatePhone', formatPhoneInput(e.target.value))} placeholder="Optional" />
       </WField>
       <WField label="Preferred Contact Method" full={false}>
         <select value={data.preferredContactMethod} onChange={(e) => set('preferredContactMethod', e.target.value)}>
           <option>Phone</option><option>Email</option>
-          <option>Text</option><option>Portal</option>
+          <option>Portal</option>
         </select>
       </WField>
     </div>
